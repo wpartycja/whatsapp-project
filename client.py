@@ -3,6 +3,7 @@ import sys
 import PySimpleGUI as sg
 from enum import Enum
 import argparse
+from datetime import datetime, timedelta
 
 
 class client:
@@ -131,7 +132,12 @@ class client:
                 break
 
             if event == "SUBMIT":
-                if(values['_REGISTERNAME_'] == 'Text' or values['_REGISTERNAME_'] == '' or values['_REGISTERALIAS_'] == 'Text' or values['_REGISTERALIAS_'] == '' or values['_REGISTERDATE_'] == ''):
+                if (values['_REGISTERNAME_'] == 'Text' 
+                   or values['_REGISTERNAME_'] == '' 
+                   or values['_REGISTERALIAS_'] == 'Text' 
+                   or values['_REGISTERALIAS_'] == '' 
+                   or values['_REGISTERDATE_'] == ''
+                   or datetime.strptime(values['_REGISTERDATE_'], "%d-%m-%Y") > datetime.now() - timedelta(days=1)):
                     sg.Popup('Registration error', title='Please fill in the fields to register.', button_type=5, auto_close=True, auto_close_duration=1)
                     continue
 
