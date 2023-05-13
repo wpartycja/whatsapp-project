@@ -19,8 +19,8 @@
 
 #define DIR_NAME "Database"
 #define FILE_TYPE ".txt"
-#define VALUE32 32;
-#define VALUE64 64;
+#define VALUE32 32
+#define VALUE64 64
 
 
 // Conexion de un cliente
@@ -30,11 +30,9 @@
 // Client register.
 int register_client(char *name, char *username, char *birthdate) { 
 	int desc;
-	char name[64];
-	char username[32];
-	char birthdate[32]; //Format DD/MM/AAAA.
 	int status = 0;
 	char temp[100];
+	// Birthdate format DD/MM/AAAA.
 	//char ip[32];
 	//int port;
 	// lista de mensajes pendientes. (?)
@@ -45,14 +43,14 @@ int register_client(char *name, char *username, char *birthdate) {
 
 	// Verify sizes of values.
 	if(strlen(name) > VALUE64){
-		printf("Error register_client(): size of name for user %d is bigger than allowed.\n", username);
+		printf("Error register_client(): size of name for user %s is bigger than allowed.\n", username);
 		printf("----------------------------------------\n");
 
 		return -1;
 	}
 
 	if(strlen(username) > VALUE32){
-		printf("Error register_client(): size of name for user %d is bigger than allowed.\n", username);
+		printf("Error register_client(): size of name for user %s is bigger than allowed.\n", username);
 		printf("----------------------------------------\n");
 
 		return -1;
@@ -100,8 +98,6 @@ int register_client(char *name, char *username, char *birthdate) {
 
 // Delete a client.
 int unregister_client(char *username){
-	char username[32];
-	
 	// Get the path of the file.
 	const char* path = get_path(username); 
 

@@ -3,6 +3,8 @@
 #include <string.h>
 #include <math.h>
 
+#include "servicios_help.h"
+
 #define DIR_NAME "Database"
 #define FILE_TYPE ".txt"
 #define MAX_SIZE 256
@@ -20,13 +22,3 @@ const char* get_path(const char* username){
 	return path_ptr;
 }
 
-// Function to check if the size of value1 is bigger than 256 bytes
-int check_size_v1(char *value1){
-	int n = strlen(value1)+1;
-
-	if(n > MAX_SIZE){
-		return -1; // If size if bigger.
-	}
-
-	return 0;
-}

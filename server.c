@@ -9,6 +9,9 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "lines.h"
+#include "servicios.h"
+
 /*clientes deberan registrarse con un nombre determinado en el sistema y a continuacion conectarse, 
 indicando para ello su IP y puerto. El servidor debe mantener una lista con todos los clientes 
 registrados, el nombre, estado y direccion de los mismos, ası como una lista de los mensajes 
@@ -54,10 +57,10 @@ void deal_with_message(void *conn){
     char buf[MAX_SIZE];
     int res;
     char operation;   
-    char name[64];
-	char username[32];
-	char birthdate[32]; //Format DD/MM/AAAA.
-	int status = 0;
+    char *name;
+	char *username;
+	char *birthdate; //Format DD/MM/AAAA.
+	//int status = 0;
     //char ip[32];
 	//int port;
 
@@ -88,7 +91,7 @@ void deal_with_message(void *conn){
             }
 
             // Save value to variable.
-            name = strcpy(name, buf); 
+            strcpy(name, buf); 
 
             // Get username.
             res = readLine(client_sd, buf, MAX_SIZE); 
@@ -103,7 +106,7 @@ void deal_with_message(void *conn){
             }
 
             // Save value to variable.
-            username = strcpy(username, buf); 
+            strcpy(username, buf); 
 
             // Get date.
             res = readLine(client_sd, buf, MAX_SIZE); 
@@ -118,10 +121,10 @@ void deal_with_message(void *conn){
             }
 
             // Save value to variable.
-            birthdate = strcpy(birthdate, buf); 
+            strcpy(birthdate, buf); 
 
             // Call the service. 
-            res = register_client(name, username, birthdate);
+            register_client(name, username, birthdate);
 
 		    pthread_mutex_unlock(&mutex_server);
 		    break;
@@ -142,10 +145,10 @@ void deal_with_message(void *conn){
             }
 
             // Save value to variable.
-            username = strcpy(username, buf);
+            strcpy(username, buf);
 
             // Call the service. 
-            res = unregister_client(username);
+            unregister_client(username);
 
 		    pthread_mutex_unlock(&mutex_server);
 		    break;
@@ -173,10 +176,10 @@ int main(int argc, char *argv[]) {
     pthread_attr_t thread_attr; // Threads attributes.
     pthread_t thid; // Thread id.
 
-    // El servidor se ejecutar ́a de la siguiente manera: $ ./server -p <port>  codigo
-    //Al iniciar el servidor se mostrara ́ el siguiente mensaje: s> init server <localIP>:<port>
+    // El servidor se ejecutara de la siguiente manera: $ ./server -p <port>  codigo
+    //Al iniciar el servidor se mostrara el siguiente mensaje: s> init server <localIP>:<port>
     //Antes de recibir comandos por parte de los clientes mostrara ́: s>
-    //El programa terminara ́ al recibir una sen ̃al SIGINT (Ctrl+C). 
+    //El programa terminara al recibir una sen ̃al SIGINT (Ctrl+C). 
     
     // Check if the number of arguments is correct.
     if (argc != 2){
