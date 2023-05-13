@@ -205,7 +205,6 @@ class client:
         # send data - operation name + alias
         s.send(bytes("DISCONNECT/0", 'UTF-8'))
         s.send(bytes(client._alias + "/0", 'UTF-8'))
-        s.send(bytes(str(client._client_port) + "/0", 'UTF-8'))
 
         # receive response from server and close connection
         s.settimeout(TIMEOUT)
@@ -222,17 +221,17 @@ class client:
         # print response on the frontend
         match response:
             case 0:
-                window['_SERVER_'].print("s> CONNECT OK")
+                window['_SERVER_'].print("s> DISCONNECT OK")
                 return client.RC.OK
             case 1:
-                window['_SERVER_'].print("s> CONNECT FAIL, USER DOES NOT EXIST")
+                window['_SERVER_'].print("s> DISCONNECT FAIL / USER DOES NOT EXIST")
                 return client.RC.USER_ERROR
             case 2:
-                window['_SERVER_'].print("s> USER ALREADY CONNECTED")
+                window['_SERVER_'].print("s> DISCONNECT FAIL / USER NOT CONNECTED")
                 return client.RC.USER_ERROR
             # not only for case 3 but for any other
             case _:
-                window['_SERVER_'].print("s> CONNECT FAIL")
+                window['_SERVER_'].print("s> DISCONNECT FAIL")
                 return client.RC.ERROR
 
     # *
@@ -382,14 +381,14 @@ class client:
             #   window['_CLIENT_'].print("c> No text inserted")
             #   continue
 
-            if (client._alias is None or client._username is None or client._alias == 'Text' or client._username == 'Text' or client._date is None) and (event != 'REGISTER'):
-                sg.Popup('NOT REGISTERED', title='ERROR', button_type=5, auto_close=True, auto_close_duration=1)
-                continue
+            # if (client._alias is None or client._username is None or client._alias == 'Text' or client._username == 'Text' or client._date is None) and (event != 'REGISTER'):
+            #     sg.Popup('NOT REGISTERED', title='ERROR', button_type=5, auto_close=True, auto_close_duration=1)
+            #     continue
 
             if (event == 'REGISTER'):
                 client.window_register()
                 if (client._alias is None or client._username is None or client._alias == 'Text' or client._username == 'Text' or client._date is None):
-                    sg.Popup('NOT REGISTERED', title='ERROR', button_type=5, auto_close=True, auto_close_duration=1)
+                    sg.Popup('NOT REGISTERED', title='ERROR', button_type=5, auto_close=True, auto_close_duration=2)
                     continue
 
                 window['_CLIENT_'].print('c> REGISTER ' + client._alias)
