@@ -8,7 +8,7 @@ import socket
 
 SERVER_IP = 'localhost'
 SERVER_PORT = 2137
-CLIENT_IP = '27.0.0.1'
+CLIENT_IP = 'localhost'
 CLIENT_PORT = 8080
 NAME_MAX_LENGTH = 64
 ALIAS_MAX_LENGTH = 32
@@ -31,7 +31,7 @@ class client:
     _username = None
     _alias = None
     _date = None
-    _socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+    _socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
 
     # ******************** METHODS *******************
     # *
@@ -59,21 +59,12 @@ class client:
         client._socket.send(bytes(client._alias + "/0", 'UTF-8'))
         client._socket.send(bytes(date + "/0", 'UTF-8'))
 
-        # listen for the server response
-        client._socket.listen()
-        received = False
+        # receive response from server and close connection
+        response = int(client._socket.recv(1))
+        client._socket.close()
 
-        while not received:
-            conn, addr = client._socket.accept()
-            if addr[0] == SERVER_IP or addr[1] == SERVER_PORT:
-                with conn:
-                    response = conn.recv(1)
-                received = True
-                conn.close()
-            else:
-                conn.shutdown(socket.SHUT_WR) # not sure?
-                conn.close()
-
+        print(response)
+        print(type(response))
 
         # get and interpret the response
         match response:
@@ -230,8 +221,8 @@ class client:
         client._server = args.s
         client._port = args.p
 
-        # bind client as we need to receive messages about status
-        # client._socket.bind((CLIENT_IP, CLIENT_PORT))
+        # not to wait 1 minute until the adress is free
+        client._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
         return True
 
@@ -281,10 +272,8 @@ class client:
                     sg.Popup('NOT REGISTERED', title='ERROR', button_type=5, auto_close=True, auto_close_duration=1)
                     continue
 
-                if client.register(window) == 0:
-                    window['_CLIENT_'].print('c> REGISTER ' + client._alias)
-                else:
-                    continue
+                window['_CLIENT_'].print('c> REGISTER ' + client._alias)
+                client.register(window)
 
             elif (event == 'UNREGISTER'):
                 window['_CLIENT_'].print('c> UNREGISTER ' + client._alias)
