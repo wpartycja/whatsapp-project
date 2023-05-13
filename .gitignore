@@ -1,5 +1,5 @@
 server.py
 client_tcp.py
 *.o
-/server/
+/server
 *.out
