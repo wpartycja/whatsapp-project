@@ -4,6 +4,14 @@ import PySimpleGUI as sg
 from enum import Enum
 import argparse
 from datetime import datetime, timedelta
+import socket
+
+SERVER_IP = 'localhost'
+SERVER_PORT = 2137
+CLIENT_IP = '27.0.0.1'
+CLIENT_PORT = 8080
+NAME_MAX_LENGTH = 64
+ALIAS_MAX_LENGTH = 32
 
 
 class client:
@@ -23,6 +31,7 @@ class client:
     _username = None
     _alias = None
     _date = None
+    _socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
     # ******************** METHODS *******************
     # *
@@ -32,10 +41,54 @@ class client:
     # * @return USER_ERROR if the user is already registered
     # * @return ERROR if another error occurred
     @staticmethod
-    def register(user, window):
-        window['_SERVER_'].print("s> REGISTER OK")
-        #  Write your code here
-        return client.RC.ERROR
+    def register(window):
+        """
+        function performs registering user from the client side
+        it sends username, alias and date of birth to server
+        and waits fot the response if registartion went right
+        """
+
+        # preparing data
+        date = client._date.replace("-", "/")
+
+        # connect to server
+        client._socket.connect((client._server, client._port))
+
+        # send data one by one
+        client._socket.send(bytes(client._username + "/0", 'UTF-8'))
+        client._socket.send(bytes(client._alias + "/0", 'UTF-8'))
+        client._socket.send(bytes(date + "/0", 'UTF-8'))
+
+        # listen for the server response
+        client._socket.listen()
+        received = False
+
+        while not received:
+            conn, addr = client._socket.accept()
+            if addr[0] == SERVER_IP or addr[1] == SERVER_PORT:
+                with conn:
+                    response = conn.recv(1)
+                received = True
+                conn.close()
+            else:
+                conn.shutdown(socket.SHUT_WR) # not sure?
+                conn.close()
+
+
+        # get and interpret the response
+        match response:
+            case 0:
+                window['_SERVER_'].print("s> REGISTER OK")
+                return client.RC.OK
+            case 1:
+                window['_SERVER_'].print("s> USERNAME IN USE")
+                return client.RC.USER_ERROR
+            case 2:
+                window['_SERVER_'].print("s> FAIL")
+                return client.RC.ERROR
+            case _:
+                window['_SERVER_'].print("s> FAIL")
+                return client.RC.ERROR
 
     # *
     # 	 * @param user - User name to unregister from the system
@@ -132,10 +185,12 @@ class client:
                 break
 
             if event == "SUBMIT":
-                if (values['_REGISTERNAME_'] == 'Text' 
-                   or values['_REGISTERNAME_'] == '' 
-                   or values['_REGISTERALIAS_'] == 'Text' 
-                   or values['_REGISTERALIAS_'] == '' 
+                if (values['_REGISTERNAME_'] == 'Text'
+                   or values['_REGISTERNAME_'] == ''
+                   or len(values['_REGISTERNAME_']) > NAME_MAX_LENGTH - 2  # -2 beacuse of additional '/0'
+                   or values['_REGISTERALIAS_'] == 'Text'
+                   or values['_REGISTERALIAS_'] == ''
+                   or len(values['_REGISTERALIAS_']) > ALIAS_MAX_LENGTH - 2
                    or values['_REGISTERDATE_'] == ''
                    or datetime.strptime(values['_REGISTERDATE_'], "%d-%m-%Y") > datetime.now() - timedelta(days=1)):
                     sg.Popup('Registration error', title='Please fill in the fields to register.', button_type=5, auto_close=True, auto_close_duration=1)
@@ -158,14 +213,14 @@ class client:
     # * @brief Parses program execution arguments
 
     @staticmethod
-    def parseArguments(argv):
+    def parseArguments():
         parser = argparse.ArgumentParser()
-        parser.add_argument('-s', type=str, required=True, help='Server IP')
-        parser.add_argument('-p', type=int, required=True, help='Server Port')
+        parser.add_argument('-s', type=str, help='Server IP', default=SERVER_IP)
+        parser.add_argument('-p', type=int, help='Server Port', default=SERVER_PORT)
         args = parser.parse_args()
 
         if (args.s is None):
-            parser.error("Usage: python3 py -s <server> -p <port>")
+            parser.error("Usage: python3 client.py -s <server> -p <port>")
             return False
 
         if ((args.p < 1024) or (args.p > 65535)):
@@ -175,11 +230,14 @@ class client:
         client._server = args.s
         client._port = args.p
 
+        # bind client as we need to receive messages about status
+        # client._socket.bind((CLIENT_IP, CLIENT_PORT))
+
         return True
 
-    def main(argv):
+    def main():
 
-        if (not client.parseArguments(argv)):
+        if (not client.parseArguments()):
             client.usage()
             exit()
 
@@ -223,8 +281,10 @@ class client:
                     sg.Popup('NOT REGISTERED', title='ERROR', button_type=5, auto_close=True, auto_close_duration=1)
                     continue
 
-                window['_CLIENT_'].print('c> REGISTER ' + client._alias)
-                client.register(client._alias, window)
+                if client.register(window) == 0:
+                    window['_CLIENT_'].print('c> REGISTER ' + client._alias)
+                else:
+                    continue
 
             elif (event == 'UNREGISTER'):
                 window['_CLIENT_'].print('c> UNREGISTER ' + client._alias)
@@ -265,5 +325,5 @@ class client:
 
 
 if __name__ == '__main__':
-    client.main([])
+    client.main()
     print("+++ FINISHED +++")
