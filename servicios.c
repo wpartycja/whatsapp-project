@@ -37,10 +37,6 @@ int register_client(char *name, char *username, char *birthdate) {
 	//int port;
 	// lista de mensajes pendientes. (?)
 
-	char line[5000];
-	
-	int n;
-
 	// Verify sizes of values.
 	if(strlen(name) > VALUE64){
 		printf("Error register_client(): size of name for user %s is bigger than allowed.\n", username);
