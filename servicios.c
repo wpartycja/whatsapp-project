@@ -28,7 +28,7 @@
 // Solicitud de un musuarios conectados 
 
 // Client register.
-int register_client(char name, char username, char birthdate) { 
+int register_client(char *name, char *username, char *birthdate) { 
 	int desc;
 	char name[64];
 	char username[32];
@@ -99,7 +99,7 @@ int register_client(char name, char username, char birthdate) {
 }
 
 // Delete a client.
-int unregister_client(char username){
+int unregister_client(char *username){
 	char username[32];
 	
 	// Get the path of the file.

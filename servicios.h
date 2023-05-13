@@ -1,6 +1,7 @@
 #ifndef _SERVICIOS_H
 #define _SERVICIOS_H 
 
-int register_client(int key, char *value1, int value2, double value3);
+int register_client(char *name, char *username, char *birthdate);
+int unregister_client(char *username);
 
 #endif
