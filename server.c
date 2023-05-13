@@ -7,10 +7,16 @@
 #include <stdbool.h>
 #include <pthread.h>
 #include <string.h>
+#include <dirent.h>
+#include <errno.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #include "lines.h"
 #include "servicios.h"
+
+#define DIR_NAME "Database"
+#define FILE_TYPE ".txt"
 
 /*clientes deberan registrarse con un nombre determinado en el sistema y a continuacion conectarse, 
 indicando para ello su IP y puerto. El servidor debe mantener una lista con todos los clientes 
@@ -43,6 +49,35 @@ struct client_connection{
     int client_sd;  
 };
 
+int init() {
+	DIR* dir = opendir(DIR_NAME); // Open the directory.
+
+	// Search for the directory.
+	if(dir) {
+		// Close the directory.
+		if((closedir(dir)) == -1){
+			perror("Error init(): while closing the directory.\n");
+			printf("----------------------------------------\n");
+
+			return 2;
+		}
+
+	} else if (ENOENT == errno){
+		// If the directory doesnt exist, we create it. 
+		mkdir(DIR_NAME, 0700);
+	} else {
+		perror("Error init(): while creating the database.\n");
+		printf("----------------------------------------\n");
+
+		return 2;
+	}
+
+	printf("Initialization completed successfully.\n");
+	printf("----------------------------------------\n");
+
+	return 0;
+}
+
 // Function to deal with client request.
 void deal_with_message(void *conn){
 
@@ -55,11 +90,12 @@ void deal_with_message(void *conn){
 
     // Variables to save values.
     char buf[MAX_SIZE];
+    int number;
     int res;
-    char operation;   
-    char *name;
-	char *username;
-	char *birthdate; //Format DD/MM/AAAA.
+    char *operation = malloc(sizeof(char) * MAX_SIZE);   
+    char *name = malloc(sizeof(char) * MAX_SIZE);
+	char *username = malloc(sizeof(char) * MAX_SIZE);   
+	char *birthdate = malloc(sizeof(char) * MAX_SIZE);   //Format DD/MM/AAAA.
 	//int status = 0;
     //char ip[32];
 	//int port;
@@ -74,7 +110,25 @@ void deal_with_message(void *conn){
         pthread_exit(NULL);
     }
 
-    switch(operation){
+    if (strcmp(operation, "REGISTER") == 0) {
+        number = 0;
+    } else if (strcmp(operation, "UNREGISTER") == 0) {
+        number = 1;
+    } else if (strcmp(operation, "CONNECT") == 0) {
+        number = 2;
+    } else if (strcmp(operation, "DISCONNECT") == 0) {
+        number = 3;
+    } else if (strcmp(operation, "SEND") == 0) {
+        number = 4;
+    } else if (strcmp(operation, "SEND_MESSAGE") == 0) {
+        number = 5;
+    } else if (strcmp(operation, "SEND_MESS_ACK") == 0) {
+        number = 6;
+    } else if (strcmp(operation, "CONNECTEDUSERS") == 0) {
+        number = 7;
+    }
+
+    switch(number){
         // REGISTER CLIENT.
 	    case 0: 
 		    pthread_mutex_lock(&mutex_server);
@@ -170,6 +224,11 @@ void deal_with_message(void *conn){
     printf("Closing connection with client.\n");
     close(client_sd); 
     pthread_exit(NULL);
+
+        free(operation);
+    free(name);
+    free(username);
+    free(birthdate);
 }
 
 int main(int argc, char *argv[]) {
@@ -242,6 +301,9 @@ int main(int argc, char *argv[]) {
     
     // Independent threads.
     pthread_attr_setdetachstate(&thread_attr, PTHREAD_CREATE_DETACHED); 
+
+
+    init();
 
     // Listen for connections.
     while (1) {
