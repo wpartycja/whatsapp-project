@@ -24,23 +24,23 @@ mediante el uso de multiples hilos (multithread). El servidor utilizara sockets 
 // Desconexion de un cliente
 // Solicitud de un musuarios conectados 
 
-#define MAX_SIZE    256
-#define SLEEP_TIME  4
+#define MAX_SIZE    256 // (?)
 
-// mutex & conditions to protect message copy
+// Mutex & conditions to protect message copy.
 pthread_mutex_t mutex_connection = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutex_server = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond_message = PTHREAD_COND_INITIALIZER;
 
-int message_not_copied = true; // flag to indicate if message has been copied
+// Flag to indicate if message has been copied.
+int message_not_copied = true; 
 
-// struct to pass arguments to thread
+// Struct to pass arguments to thread.
 struct client_connection{
     struct sockaddr_in client_addr;
     int client_sd;  
 };
 
-// function to deal with client request
+// Function to deal with client request.
 void deal_with_message(void *conn){
 
     // copy message to local variable. 
@@ -52,245 +52,117 @@ void deal_with_message(void *conn){
 
     // Variables to save values.
     char buf[MAX_SIZE];
+    int res;
     char operation;   
-    char name[MAX_SIZE];       
-    char username[MAX_SIZE];          
-    char birthdate[MAX_SIZE];
+    char name[64];
+	char username[32];
+	char birthdate[32]; //Format DD/MM/AAAA.
+	int status = 0;
+    //char ip[32];
+	//int port;
 
     // Unpack values from struct.
     int client_sd = client_conn->client_sd; 
 
     // Deal with client request and make a response.
     if(recvMessage(client_sd, (char *) &operation, 1) == -1){ 
-        fprintf(stderr, "Error: Problem with revceing a message\n");
+        fprintf(stderr, "Error: Problem with receiving a message.\n");
         close(client_sd); 
         pthread_exit(NULL);
     }
 
     switch(operation){
-	    
-	    case 0: // REGISTRO DE UN CLIENTE
+        // REGISTER CLIENT.
+	    case 0: 
 		    pthread_mutex_lock(&mutex_server);
-            // Call the service.
-		    res = init();
-		    pthread_mutex_unlock(&mutex_server);
-		    break;
-
-	    case 1: // BAJA DE CLIENTE 
-		    pthread_mutex_lock(&mutex_server);
-            // Get key. 
+            // Get name. 
             res = readLine(client_sd, buf, MAX_SIZE); 
             if(res == -1){
-                fprintf(stderr, "Error: (Server) Key value could not be received.\n");
+                fprintf(stderr, "Error: (Server) name could not be received.\n");
                 close(client_sd);
                 pthread_exit(NULL);
             } else if (res == 0){
-                fprintf(stderr, "Error: (Server) Key value could not be read.\n");
+                fprintf(stderr, "Error: (Server) name could not be read.\n");
                 close(client_sd); 
                 pthread_exit(NULL);
             }
 
-            key = atoi(buf); // Convert to int.
+            // Save value to variable.
+            name = strcpy(name, buf); 
 
-            // Get value1.
-            res = readLine(client_sd, value1, MAX_SIZE); 
+            // Get username.
+            res = readLine(client_sd, buf, MAX_SIZE); 
             if(res == -1){
-                fprintf(stderr, "Error: (Server)  value1 could not be received.\n");
+                fprintf(stderr, "Error: (Server) username could not be received.\n");
                 close(client_sd); 
                 pthread_exit(NULL);
             } else if (res == 0){
-                fprintf(stderr, "Error: (Server) value1  could not be read.\n");
+                fprintf(stderr, "Error: (Server) username  could not be read.\n");
                 close(client_sd); 
                 pthread_exit(NULL);
             }
 
-            // Get value2.
+            // Save value to variable.
+            username = strcpy(username, buf); 
+
+            // Get date.
             res = readLine(client_sd, buf, MAX_SIZE); 
             if(res == -1){
-                fprintf(stderr, "Error: (Server)  value1 could not be received.\n");
+                fprintf(stderr, "Error: (Server) birthdate could not be received.\n");
                 close(client_sd);
                 pthread_exit(NULL);
             } else if (res == 0){
-                fprintf(stderr, "Error: (Server) value1 could not be read.\n");
+                fprintf(stderr, "Error: (Server) birthdate could not be read.\n");
                 close(client_sd); 
                 pthread_exit(NULL);
             }
-            value2 = atoi(buf);
 
-            // Get value3. 
-		    res = readLine(client_sd, buf, MAX_SIZE); 
-            if(res == -1){
-                fprintf(stderr, "Error: (Server)  value1 could not be received.\n");
-                close(client_sd); 
-                pthread_exit(NULL);
-            } else if (res == 0){
-                fprintf(stderr, "Error: (Server) value1could not be read.\n");
-                close(client_sd); 
-                pthread_exit(NULL);
-            }
-            value3 = atoi(buf);
+            // Save value to variable.
+            birthdate = strcpy(birthdate, buf); 
 
             // Call the service. 
-            res = set_value(key, value1, value2, value3);
+            res = register_client(name, username, birthdate);
 
 		    pthread_mutex_unlock(&mutex_server);
 		    break;
 
-	     case 2: // CONEXION DE UN CLIENTE 
-		     pthread_mutex_lock(&mutex_server);
-             // Get key.
-             res = readLine(client_sd, buf, MAX_SIZE); 
-             if(res == -1){
-                // Error receiving message.
-                fprintf(stderr, "Error: (Server) Key value could not be received.\n");
-                 close(client_sd); 
-                 pthread_exit(NULL);
-             } else if (res == 0){
-                // Error receiving message.
-                 fprintf(stderr, "Error: (Server) Key value could not be read.\n");
-                 close(client_sd);
-                 pthread_exit(NULL);
-             }
-             key = atoi(buf); // Convert to int.
-
-             // Call the service. 
-             res = get_value(key, value1, &value2, &value3);
-
-             // Send result of the operation to the client. 
-             sprintf(buf, "%d", res);
-             if((sendMessage(client_sd, buf, strlen(buf) + 1)) == -1){ 
-                // Error sending message.
-                 printf("Error in communication: Impossible to receive result of the operation\n");
-                 close(client_sd);
-                 pthread_exit(NULL);
-             }
-
-             if(res == 0){
-                 // Send value1 to client.
-                 if((sendMessage(client_sd, value1, strlen(value1) + 1)) == -1){ 
-                    // Error sending message.
-                     printf("Error in communication: Impossible to receive value 1\n");
-                     close(client_sd);
-                     pthread_exit(NULL);
-                 }
-
-                 // Send value2 to client.
-                 sprintf(buf, "%d", value2);
-                 if((sendMessage(client_sd, buf, strlen(buf) + 1)) == -1){ 
-                    // Error sending message.
-                     printf("Error in communication: Impossible to receive value 2\n");
-                     close(client_sd); 
-                     pthread_exit(NULL);
-                 }
-
-                 // Send value3 to client.
-                 sprintf(buf, "%f", value3);
-                 if((sendMessage(client_sd, buf, strlen(buf) + 1)) == -1){ 
-                    // Error sending message.
-                     printf("Error in communication: Impossible to receive value 3\n");
-                     close(client_sd); 
-                     pthread_exit(NULL);
-                 }
-             }
-
-		     pthread_mutex_unlock(&mutex_server);
-		     break;
-	    case 3: // DESCONEXION DE UN CLIENTE 
-		    pthread_mutex_lock(&mutex_server);
-            // Get key.
+        // UNREGISTER CLIENT
+	    case 1: 
+            pthread_mutex_lock(&mutex_server);
+            // Get username.
             res = readLine(client_sd, buf, MAX_SIZE); 
             if(res == -1){
-                fprintf(stderr, "Error: (Server) Key value could not be received.\n");
+                fprintf(stderr, "Error: (Server) Username could not be received.\n");
                 close(client_sd); 
                 pthread_exit(NULL);
             } else if (res == 0){
-                fprintf(stderr, "Error: (Server) Key value could not be read.\n");
-                close(client_sd); 
-                pthread_exit(NULL);
-            }
-            key = atoi(buf);
-
-            // Get value1.
-            res = readLine(client_sd, value1, MAX_SIZE); 
-            if(res == -1){
-                fprintf(stderr, "Error: (Server)  value1 could not be received.\n");
-                close(client_sd); 
-                pthread_exit(NULL);
-            } else if (res == 0){
-                fprintf(stderr, "Error: (Server) value1 value could not be read.\n");
+                fprintf(stderr, "Error: (Server) Username could not be read.\n");
                 close(client_sd); 
                 pthread_exit(NULL);
             }
 
-            // Get value2.
-            res = readLine(client_sd, buf, MAX_SIZE); 
-            if(res == -1){
-                fprintf(stderr, "Error: (Server)  value1 could not be received.\n");
-                close(client_sd); 
-                pthread_exit(NULL);
-            } else if (res == 0){
-                fprintf(stderr, "Error: (Server) value1 value could not be read.\n");
-                close(client_sd); 
-                pthread_exit(NULL);
-            }
-            value2 = atoi(buf);
-
-            // Get value3. 
-		    res = readLine(client_sd, buf, MAX_SIZE); 
-            if(res == -1){
-                fprintf(stderr, "Error: (Server)  value1 could not be received.\n");
-                close(client_sd); 
-                pthread_exit(NULL);
-            } else if (res == 0){
-                fprintf(stderr, "Error: (Server) value1 value could not be read.\n");
-                close(client_sd); 
-                pthread_exit(NULL);
-            }
-            value3 = atoi(buf);
+            // Save value to variable.
+            username = strcpy(username, buf);
 
             // Call the service. 
-            res = modify_value(key, value1, value2, value3);
+            res = unregister_client(username);
 
 		    pthread_mutex_unlock(&mutex_server);
 		    break;
-
-	    case 4: // SOLICITUD DE USUARIOS CONECTADOS 
-		    pthread_mutex_lock(&mutex_server);
-            // Get key.
-            res = readLine(client_sd, buf, MAX_SIZE); 
-            if(res == -1){
-                fprintf(stderr, "Error: (Server) Key value could not be received.\n");
-                close(client_sd); 
-                pthread_exit(NULL);
-            } else if (res == 0){
-                fprintf(stderr, "Error: (Server) Key value could not be read.\n");
-                close(client_sd); 
-                pthread_exit(NULL);
-            }
-            key = atoi(buf);
-
-            // Call the service. 
-            res = delete_key(key);
-
-		    pthread_mutex_unlock(&mutex_server);
-		    break;
-		    
+        
         default:
             break;
-
     }     
 
     // Send response to client.
-    if(operation != 2){
-        sprintf(buf, "%d", res); // Convert response to string.
-        // Send response to client.
-        if((sendMessage(client_sd, buf, strlen(buf) + 1)) == -1){ 
-            fprintf(stderr, "Error: (Server) response value could not be sent to the client.");
-            close(client_sd); 
-            pthread_exit(NULL);
-        }
+    sprintf(buf, "%d", res); // Convert response to string.
+    // Send response to client.
+    if((sendMessage(client_sd, buf, strlen(buf) + 1)) == -1){ 
+        fprintf(stderr, "Error: (Server) response value could not be sent to the client.");
+        close(client_sd); 
+        pthread_exit(NULL);
     }
-    
+
     // Close the connection with the client.
     printf("Closing connection with client.\n");
     close(client_sd); 
@@ -298,8 +170,13 @@ void deal_with_message(void *conn){
 }
 
 int main(int argc, char *argv[]) {
-    pthread_attr_t thread_attr; // threads attributes
-    pthread_t thid; // thread id
+    pthread_attr_t thread_attr; // Threads attributes.
+    pthread_t thid; // Thread id.
+
+    // El servidor se ejecutar ́a de la siguiente manera: $ ./server -p <port>  codigo
+    //Al iniciar el servidor se mostrara ́ el siguiente mensaje: s> init server <localIP>:<port>
+    //Antes de recibir comandos por parte de los clientes mostrara ́: s>
+    //El programa terminara ́ al recibir una sen ̃al SIGINT (Ctrl+C). 
     
     // Check if the number of arguments is correct.
     if (argc != 2){
@@ -316,8 +193,11 @@ int main(int argc, char *argv[]) {
             .sin_port = htons(port)
     };
 
-    struct client_connection client_conn; // Client connection structure.
-    socklen_t client_address_len = sizeof(client_conn.client_addr); // Client address length.
+    // Client connection structure.
+    struct client_connection client_conn; 
+
+    // Client address length.
+    socklen_t client_address_len = sizeof(client_conn.client_addr); 
 
     // Create socket.
     int socket_fd = socket(
@@ -328,7 +208,7 @@ int main(int argc, char *argv[]) {
 
     // Check if socket was created correctly.
     if (socket_fd < 0) {
-        perror("error creating socket");
+        perror("Error creating socket.\n");
         return 1;
     }
 
@@ -341,14 +221,14 @@ int main(int argc, char *argv[]) {
 
     // Check if socket was binded correctly.
     if (bind_result < 0) {
-        perror("error binding socket");
+        perror("Error binding socket.\n");
         return 1;
     }
 
     // Put socket in listening mode.
     int listen_result = listen(socket_fd, 1);
     if (listen_result < 0) {
-        perror("error putting socket in listening mode");
+        perror("Error putting socket in listening mode.\n");
         return 1;
     }
 
@@ -356,7 +236,9 @@ int main(int argc, char *argv[]) {
     pthread_mutex_init(&mutex_connection, NULL); 
     pthread_cond_init(&cond_message, NULL); 
     pthread_attr_init(&thread_attr);
-    pthread_attr_setdetachstate(&thread_attr, PTHREAD_CREATE_DETACHED); // Independent threads.
+    
+    // Independent threads.
+    pthread_attr_setdetachstate(&thread_attr, PTHREAD_CREATE_DETACHED); 
 
     // Listen for connections.
     while (1) {
@@ -364,10 +246,10 @@ int main(int argc, char *argv[]) {
         // Accept connection.
         client_conn.client_sd = accept(socket_fd, (struct sockaddr*) &client_conn.client_addr, &client_address_len);
         if (client_conn.client_sd < 0) {
-            perror("error accepting connection");
+            perror("Error accepting connection.\n");
             return 1;
         } else {
-            printf("Connection succesfully accepted from IP: %s\tPort: %d\n", inet_ntoa(client_conn.client_addr.sin_addr), ntohs(client_conn.client_addr.sin_port));
+            printf("init server <localIP: %s>:<port: %d>\n", inet_ntoa(client_conn.client_addr.sin_addr), ntohs(client_conn.client_addr.sin_port));
         }
 
         if (pthread_create(&thid, &thread_attr, (void *) deal_with_message, &client_conn) == 0) {

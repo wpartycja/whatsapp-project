@@ -15,32 +15,32 @@
 #include "servicios_help.h"
 
 #define MAX_MSG_SIZE 1024
-#define FILE_TYPE ".txt"
 #define MAX_SIZE 256
 
 #define DIR_NAME "Database"
+#define FILE_TYPE ".txt"
 #define VALUE32 32;
 #define VALUE64 64;
 
-// Registro de un cliente
-// Baja de un cliente
+
 // Conexion de un cliente
 // Desconexion de un cliente
 // Solicitud de un musuarios conectados 
 
 // Client register.
 int register_client(char name, char username, char birthdate) { 
+	int desc;
 	char name[64];
 	char username[32];
-	//formato DD/MM/AAAA.
-	char birthdate[32];
+	char birthdate[32]; //Format DD/MM/AAAA.
 	int status = 0;
+	char temp[100];
 	//char ip[32];
 	//int port;
 	// lista de mensajes pendientes. (?)
 
 	char line[5000];
-	char temp[1000];
+	
 	int n;
 
 	// Verify sizes of values.
@@ -59,46 +59,35 @@ int register_client(char name, char username, char birthdate) {
 	}
 
 	// Get key as a string and a path to file.
-	const char *userStr = get_username_str(username);
-	const char *path = get_path(userStr);
+	const char *path = get_path(username);
 
 	// Open the file.
-	if((status = open(path, O_RDONLY)) == -1){
+	if((desc = open(path, O_RDONLY)) == -1){
 		// Since the file doesnt exist, we proceed to create it.
-		if((status = open(path, O_WRONLY | O_CREAT, 0666)) == -1){
-			perror("Error while creating the file.\n");
+		if((desc = open(path, O_WRONLY | O_CREAT, 0666)) == -1){
+			perror("Error while registering new user.\n");
 			printf("----------------------------------------\n");
 
 			return -1;
 		}
-		// Format the key and values to write them into the file.
-		snprintf(line, 5000, "%d, ", key);
-		
-		n = strlen(value1);
-		strncat(line, value1, n);
-		
-		snprintf(temp, 1000, ", %d, ", value2); 
-		n = strlen(temp);
-		strncat(line, temp, n);
-		
-		snprintf(temp, 1000, "%lf\n", value3);
-		n = strlen(temp);
-		strncat(line, temp, n);
+		// Write the information into the file.
+		write(desc, username, strlen(username));
+		write(desc, name, strlen(name));
+		write(desc, birthdate, strlen(birthdate));
+		snprintf(temp, 100, "%d", status);
+		write(desc, temp, strlen(temp));
 
-		// Write the values into the file.
-		write(status, line, strlen(line));
-
-		printf("Values for key %d: value1 =\"%s\", value2 = %d, value3 = %lf\n", key, value1, value2, value3);
-		printf("Successfully set values for key %d\n", key);
+		printf("Values for username %s: name =\"%s\", birthdate = %s\n", username, name, birthdate); 
+		printf("REGISTER <%s> OK\n", username);
 	} else {
-		// Since file already exists, it is considered an error.
-		printf("Error set_value(): key %d value already exists.\n", key);
+		// If the file already exists, we cant register the user.
+		printf("REGISTER <%s> FAIL\n", username);
 		printf("----------------------------------------\n");
 		return -1;
 	}
 
 	// Close the file.
-	if(close(status) == -1){
+	if(close(desc) == -1){
 		perror("Error while closing the file.\n");
 		printf("----------------------------------------\n");
 		return -1;
@@ -106,18 +95,21 @@ int register_client(char name, char username, char birthdate) {
 
 	printf("----------------------------------------\n");
 	return 0;
+
 }
 
-int unregister_client(int key){
-	// add variable key in char[] type
-	const char* key_str = get_key_str(key);
-	const char* path = get_path(key_str);
+// Delete a client.
+int unregister_client(char username){
+	char username[32];
+	
+	// Get the path of the file.
+	const char* path = get_path(username); 
 
-	// try to delete the file
+	// Try to delete the file.
 	if(remove(path) == 0) {
-		printf("File %s%s deleted successfully!\n", key_str, FILE_TYPE);
+		printf("UNREGISTER <%s> OK\n", username); 
 	} else {
-		printf("Error delete_key(): Unable to delete file %s%s\n", key_str, FILE_TYPE);
+		printf("UNREGISTER <%s> FAIL\n", username);
 		printf("----------------------------------------\n");
 
 		return -1;
