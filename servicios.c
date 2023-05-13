@@ -46,14 +46,14 @@ int register_client(char *name, char *username, char *birthdate) {
 		printf("Error register_client(): size of name for user %s is bigger than allowed.\n", username);
 		printf("----------------------------------------\n");
 
-		return -1;
+		return 2;
 	}
 
 	if(strlen(username) > VALUE32){
 		printf("Error register_client(): size of name for user %s is bigger than allowed.\n", username);
 		printf("----------------------------------------\n");
 
-		return -1;
+		return 2;
 	}
 
 	// Get key as a string and a path to file.
@@ -66,7 +66,7 @@ int register_client(char *name, char *username, char *birthdate) {
 			perror("Error while registering new user.\n");
 			printf("----------------------------------------\n");
 
-			return -1;
+			return 2;
 		}
 		// Write the information into the file.
 		write(desc, username, strlen(username));
@@ -81,14 +81,14 @@ int register_client(char *name, char *username, char *birthdate) {
 		// If the file already exists, we cant register the user.
 		printf("REGISTER <%s> FAIL\n", username);
 		printf("----------------------------------------\n");
-		return -1;
+		return 1;
 	}
 
 	// Close the file.
 	if(close(desc) == -1){
 		perror("Error while closing the file.\n");
 		printf("----------------------------------------\n");
-		return -1;
+		return 2;
 	}
 
 	printf("----------------------------------------\n");
@@ -108,7 +108,7 @@ int unregister_client(char *username){
 		printf("UNREGISTER <%s> FAIL\n", username);
 		printf("----------------------------------------\n");
 
-		return -1;
+		return 1;
 	}
 	
 	printf("----------------------------------------\n");
