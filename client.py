@@ -12,6 +12,7 @@ CLIENT_IP = 'localhost'
 CLIENT_PORT = 8080
 NAME_MAX_LENGTH = 64
 ALIAS_MAX_LENGTH = 32
+TIMEOUT = 3
 
 
 class client:
@@ -65,8 +66,15 @@ class client:
         s.send(bytes(client._alias + "/0", 'UTF-8'))
         s.send(bytes(date + "/0", 'UTF-8'))
 
-        # receive response from server and close connection
-        response = int(s.recv(1))
+        s.settimeout(TIMEOUT)
+        # receive response with set timeout from server and close connection
+        try:
+            response = int(s.recv(1).decode())
+            sg.Popup('Waiting for server response...', title='WAITING', button_type=5, auto_close=True, auto_close_duration=5)
+        except socket.timeout:
+            # Handle a timeout exception
+            sg.Popup(f'Timeout occured, no data received within {TIMEOUT} sec', title='WAITING', button_type=5, auto_close=True, auto_close_duration=3)
+            response = 2
         s.close()
 
         # get and interpret the response
@@ -77,9 +85,7 @@ class client:
             case 1:
                 window['_SERVER_'].print("s> USERNAME IN USE")
                 return client.RC.USER_ERROR
-            case 2:
-                window['_SERVER_'].print("s> REGISTER FAIL")
-                return client.RC.ERROR
+            # not only for case 2 but for any other
             case _:
                 window['_SERVER_'].print("s> REGISTER FAIL")
                 return client.RC.ERROR
@@ -104,14 +110,22 @@ class client:
         # connect to server
         s.connect((client._server, client._port))
 
-        # send data one by one
+        # send data - operation name + alias
         s.send(bytes("UNREGISTER/0", 'UTF-8'))
         s.send(bytes(client._alias + "/0", 'UTF-8'))
 
-        # receive response from server and close connection
-        response = int(s.recv(1))
+        s.settimeout(TIMEOUT)
+        # receive response with set timeout from server and close connection
+        try:
+            response = int(s.recv(1).decode())
+            sg.Popup('Waiting for server response...', title='WAITING', button_type=5, auto_close=True, auto_close_duration=5)
+        except socket.timeout:
+            # Handle a timeout exception
+            sg.Popup(f'Timeout occured, no data received within {TIMEOUT} sec', title='WAITING', button_type=5, auto_close=True, auto_close_duration=3)
+            response = 2
         s.close()
 
+        # print response on the frontend
         match response:
             case 0:
                 window['_SERVER_'].print("s> UNREGISTER OK")
@@ -119,9 +133,7 @@ class client:
             case 1:
                 window['_SERVER_'].print("s> USER DOES NOT EXIST")
                 return client.RC.USER_ERROR
-            case 2:
-                window['_SERVER_'].print("s> UNREGISTER FAIL")
-                return client.RC.ERROR
+            # not only for case 2 but for any other
             case _:
                 window['_SERVER_'].print("s> UNREGISTER FAIL")
                 return client.RC.ERROR
@@ -135,9 +147,44 @@ class client:
 
     @staticmethod
     def connect(user, window):
-        window['_SERVER_'].print("s> CONNECT OK")
-        #  Write your code here
-        return client.RC.ERROR
+
+        # creating socket
+        s = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
+
+        # connect to server
+        s.connect((client._server, client._port))
+
+        # send data - operation name + alias
+        s.send(bytes("CONNECT/0", 'UTF-8'))
+        s.send(bytes(client._alias + "/0", 'UTF-8'))
+        s.send(bytes(str(client._client_port) + "/0", 'UTF-8'))
+
+        s.settimeout(TIMEOUT)
+        # receive response with set timeout from server and close connection
+        try:
+            response = int(s.recv(1).decode())
+            sg.Popup('Waiting for server response...', title='WAITING', button_type=5, auto_close=True, auto_close_duration=5)
+        except socket.timeout:
+            # Handle a timeout exception
+            sg.Popup(f'Timeout occured, no data received within {TIMEOUT} sec', title='WAITING', button_type=5, auto_close=True, auto_close_duration=3)
+            response = 3
+        s.close()
+
+        # print response on the frontend
+        match response:
+            case 0:
+                window['_SERVER_'].print("s> CONNECT OK")
+                return client.RC.OK
+            case 1:
+                window['_SERVER_'].print("s> CONNECT FAIL, USER DOES NOT EXIST")
+                return client.RC.USER_ERROR
+            case 2:
+                window['_SERVER_'].print("s> USER ALREADY CONNECTED")
+                return client.RC.USER_ERROR
+            # not only for case 3 but for any other
+            case _:
+                window['_SERVER_'].print("s> CONNECT FAIL")
+                return client.RC.ERROR
 
     # *
     # * @param user - User name to disconnect from the system
@@ -148,9 +195,45 @@ class client:
 
     @staticmethod
     def disconnect(user, window):
-        window['_SERVER_'].print("s> DISCONNECT OK")
-        #  Write your code here
-        return client.RC.ERROR
+
+        # creating socket
+        s = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
+
+        # connect to server
+        s.connect((client._server, client._port))
+
+        # send data - operation name + alias
+        s.send(bytes("DISCONNECT/0", 'UTF-8'))
+        s.send(bytes(client._alias + "/0", 'UTF-8'))
+        s.send(bytes(str(client._client_port) + "/0", 'UTF-8'))
+
+        # receive response from server and close connection
+        s.settimeout(TIMEOUT)
+        # receive response with set timeout from server and close connection
+        try:
+            response = int(s.recv(1).decode())
+            sg.Popup('Waiting for server response...', title='WAITING', button_type=5, auto_close=True, auto_close_duration=5)
+        except socket.timeout:
+            # Handle a timeout exception
+            sg.Popup(f'Timeout occured, no data received within {TIMEOUT} sec', title='WAITING', button_type=5, auto_close=True, auto_close_duration=3)
+            response = 3
+        s.close()
+
+        # print response on the frontend
+        match response:
+            case 0:
+                window['_SERVER_'].print("s> CONNECT OK")
+                return client.RC.OK
+            case 1:
+                window['_SERVER_'].print("s> CONNECT FAIL, USER DOES NOT EXIST")
+                return client.RC.USER_ERROR
+            case 2:
+                window['_SERVER_'].print("s> USER ALREADY CONNECTED")
+                return client.RC.USER_ERROR
+            # not only for case 3 but for any other
+            case _:
+                window['_SERVER_'].print("s> CONNECT FAIL")
+                return client.RC.ERROR
 
     # *
     # * @param user    - Receiver user name
@@ -313,10 +396,14 @@ class client:
                 client.register(client._alias, window)
 
             elif (event == 'UNREGISTER'):
+                if (client._alias is None):
+                    sg.Popup('NOT REGISTERED', title='ERROR', button_type=5, auto_close=True, auto_close_duration=1)
                 window['_CLIENT_'].print('c> UNREGISTER ' + client._alias)
                 client.unregister(client._alias, window)
 
             elif (event == 'CONNECT'):
+                if (client._alias is None):
+                    sg.Popup('NOT REGISTERED', title='ERROR', button_type=5, auto_close=True, auto_close_duration=1)
                 window['_CLIENT_'].print('c> CONNECT ' + client._alias)
                 client.connect(client._alias, window)
 
