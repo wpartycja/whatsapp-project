@@ -46,6 +46,7 @@ ssize_t readLine(int fd, void *buffer, size_t n){
 
 	if (n <= 0 || buffer == NULL) { 
 		errno = EINVAL;
+		printf("Entra primer if\n");
 		return -1; 
 	}
 

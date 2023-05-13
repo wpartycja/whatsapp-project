@@ -6,7 +6,7 @@ import argparse
 from datetime import datetime, timedelta
 import socket
 
-SERVER_IP = 'localhost'
+SERVER_IP = '127.0.0.1'
 SERVER_PORT = 2137
 CLIENT_IP = 'localhost'
 CLIENT_PORT = 8080
