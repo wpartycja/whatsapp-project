@@ -3,19 +3,19 @@
 #include <string.h>
 #include <math.h>
 
-#define DIR_NAME "FilesPractice2"
+#define DIR_NAME "Database"
 #define FILE_TYPE ".txt"
 #define MAX_SIZE 256
 
 // Function to get the string of the key
-const char* get_key_str(int key){
-	int key_mem;
-	if (key < 0){
-		key_mem = -key;
-	} else if (key == 0){
-		key_mem = 1;
+const char* get_username_str(char username){
+	int username_mem;
+	if (username < 0){
+		username_mem = -username; 
+	} else if (username == 0){
+		username_mem = 1;
 	} else {
-		key_mem = key;
+		username_mem = username;
 	}
 	// creating a string of the key
 	char key_str[(int)((ceil(log10(key_mem))+1)*sizeof(char))]; // inside fancy way to calculate dynamically size of key_str

@@ -15,9 +15,12 @@
 #include "servicios_help.h"
 
 #define MAX_MSG_SIZE 1024
-#define DIR_NAME "FilesPractice2"
 #define FILE_TYPE ".txt"
 #define MAX_SIZE 256
+
+#define DIR_NAME "Database"
+#define VALUE32 32;
+#define VALUE64 64;
 
 // Registro de un cliente
 // Baja de un cliente
@@ -25,23 +28,39 @@
 // Desconexion de un cliente
 // Solicitud de un musuarios conectados 
 
+// Client register.
 int register_client(char name, char username, char birthdate) { 
-	int status;
+	char name[64];
+	char username[32];
+	//formato DD/MM/AAAA.
+	char birthdate[32];
+	int status = 0;
+	//char ip[32];
+	//int port;
+	// lista de mensajes pendientes. (?)
+
 	char line[5000];
 	char temp[1000];
 	int n;
 
-	// Verify if value1 is the right size.
-	if(strlen(value1) > MAX_SIZE){
-		printf("Error set_value(): size of value1 in file %d is bigger than 256 bytes.\n", key);
+	// Verify sizes of values.
+	if(strlen(name) > VALUE64){
+		printf("Error register_client(): size of name for user %d is bigger than allowed.\n", username);
+		printf("----------------------------------------\n");
+
+		return -1;
+	}
+
+	if(strlen(username) > VALUE32){
+		printf("Error register_client(): size of name for user %d is bigger than allowed.\n", username);
 		printf("----------------------------------------\n");
 
 		return -1;
 	}
 
 	// Get key as a string and a path to file.
-	const char *keyStr = get_key_str(key);
-	const char *path = get_path(keyStr);
+	const char *userStr = get_username_str(username);
+	const char *path = get_path(userStr);
 
 	// Open the file.
 	if((status = open(path, O_RDONLY)) == -1){
