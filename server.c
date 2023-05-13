@@ -9,11 +9,20 @@
 #include <string.h>
 #include <unistd.h>
 
-//clientes deberan registrarse con un nombre determinado en el sistema y a continuacion conectarse, 
-//indicando para ello su IP y puerto. El servidor debe mantener una lista con todos los clientes 
-//registrados, el nombre, estado y direcci ́on de los mismos, as ́ı como una lista de los mensajes 
-//pendientes de entrega a cada cliente. Adema ́s se encargar ́a de asociar un identificador a cada 
-//mensaje recibido de un cliente.
+/*clientes deberan registrarse con un nombre determinado en el sistema y a continuacion conectarse, 
+indicando para ello su IP y puerto. El servidor debe mantener una lista con todos los clientes 
+registrados, el nombre, estado y direccion de los mismos, ası como una lista de los mensajes 
+pendientes de entrega a cada cliente. Ademas se encargara de asociar un identificador a cada 
+mensaje recibido de un cliente*/
+
+/*El servidor debe ser capaz de gestionar varias conexiones simultaneamente (debe ser concurrente) 
+mediante el uso de multiples hilos (multithread). El servidor utilizara sockets TCP orientados a conexion*/
+
+// Registro de un cliente
+// Baja de un cliente
+// Conexion de un cliente
+// Desconexion de un cliente
+// Solicitud de un musuarios conectados 
 
 #define MAX_SIZE    256
 #define SLEEP_TIME  4
@@ -43,12 +52,10 @@ void deal_with_message(void *conn){
 
     // Variables to save values.
     char buf[MAX_SIZE];
-    char operation;          
-    int key;            
-    char value1[MAX_SIZE];   
-    int value2;         
-    double value3;      
-    int res;
+    char operation;   
+    char name[MAX_SIZE];       
+    char username[MAX_SIZE];          
+    char birthdate[MAX_SIZE];
 
     // Unpack values from struct.
     int client_sd = client_conn->client_sd; 
@@ -62,14 +69,14 @@ void deal_with_message(void *conn){
 
     switch(operation){
 	    
-	    case 0: // init()
+	    case 0: // REGISTRO DE UN CLIENTE
 		    pthread_mutex_lock(&mutex_server);
             // Call the service.
 		    res = init();
 		    pthread_mutex_unlock(&mutex_server);
 		    break;
 
-	    case 1: // set_value()
+	    case 1: // BAJA DE CLIENTE 
 		    pthread_mutex_lock(&mutex_server);
             // Get key. 
             res = readLine(client_sd, buf, MAX_SIZE); 
@@ -129,7 +136,7 @@ void deal_with_message(void *conn){
 		    pthread_mutex_unlock(&mutex_server);
 		    break;
 
-	     case 2: // get_value()
+	     case 2: // CONEXION DE UN CLIENTE 
 		     pthread_mutex_lock(&mutex_server);
              // Get key.
              res = readLine(client_sd, buf, MAX_SIZE); 
@@ -188,7 +195,7 @@ void deal_with_message(void *conn){
 
 		     pthread_mutex_unlock(&mutex_server);
 		     break;
-	    case 3: // modify_value()
+	    case 3: // DESCONEXION DE UN CLIENTE 
 		    pthread_mutex_lock(&mutex_server);
             // Get key.
             res = readLine(client_sd, buf, MAX_SIZE); 
@@ -247,7 +254,7 @@ void deal_with_message(void *conn){
 		    pthread_mutex_unlock(&mutex_server);
 		    break;
 
-	    case 4: // delete_key()
+	    case 4: // SOLICITUD DE USUARIOS CONECTADOS 
 		    pthread_mutex_lock(&mutex_server);
             // Get key.
             res = readLine(client_sd, buf, MAX_SIZE); 
@@ -264,62 +271,6 @@ void deal_with_message(void *conn){
 
             // Call the service. 
             res = delete_key(key);
-
-		    pthread_mutex_unlock(&mutex_server);
-		    break;
-
-          case 5: // exist()
-		    pthread_mutex_lock(&mutex_server);
-            // Get key.
-            res = readLine(client_sd, buf, MAX_SIZE); 
-            if(res == -1){
-                fprintf(stderr, "Error: (Server) Key value could not be received.\n");
-                close(client_sd); 
-                pthread_exit(NULL);
-            } else if (res == 0){
-                fprintf(stderr, "Error: (Server) Key value could not be read.\n");
-                close(client_sd); 
-                pthread_exit(NULL);
-            }
-            key = atoi(buf);
-
-            // Call the service.
-            res = exist(key);
-
-		    pthread_mutex_unlock(&mutex_server);
-		    break;
-
-	    case 6: // copy_key()
-		    pthread_mutex_lock(&mutex_server);
-		    
-            // Get key.
-            res = readLine(client_sd, buf, MAX_SIZE); 
-            if(res == -1){
-                fprintf(stderr, "Error: (Server) Key value could not be received.\n");
-                close(client_sd); 
-                pthread_exit(NULL);
-            } else if (res == 0){
-                fprintf(stderr, "Error: (Server) Key value could not be read.\n");
-                close(client_sd); 
-                pthread_exit(NULL);
-            }
-            key = atoi(buf);
-
-            // Get value2.
-            res = readLine(client_sd, buf, MAX_SIZE); 
-            if(res == -1){
-                fprintf(stderr, "Error: (Server)  value1 could not be received.\n");
-                close(client_sd); 
-                pthread_exit(NULL);
-            } else if (res == 0){
-                fprintf(stderr, "Error: (Server) value1 value could not be read.\n");
-                close(client_sd); 
-                pthread_exit(NULL);
-            }
-            value2 = atoi(buf);
-
-            // Call the service.
-            res = copy_key(key, value2);
 
 		    pthread_mutex_unlock(&mutex_server);
 		    break;
