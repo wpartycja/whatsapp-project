@@ -397,16 +397,24 @@ class client:
             elif (event == 'UNREGISTER'):
                 if (client._alias is None):
                     sg.Popup('NOT REGISTERED', title='ERROR', button_type=5, auto_close=True, auto_close_duration=1)
+                    continue
+                
                 window['_CLIENT_'].print('c> UNREGISTER ' + client._alias)
                 client.unregister(client._alias, window)
 
             elif (event == 'CONNECT'):
                 if (client._alias is None):
                     sg.Popup('NOT REGISTERED', title='ERROR', button_type=5, auto_close=True, auto_close_duration=1)
+                    continue
+
                 window['_CLIENT_'].print('c> CONNECT ' + client._alias)
                 client.connect(client._alias, window)
 
             elif (event == 'DISCONNECT'):
+                if (client._alias is None):
+                    sg.Popup('NOT REGISTERED', title='ERROR', button_type=5, auto_close=True, auto_close_duration=1)
+                    continue
+
                 window['_CLIENT_'].print('c> DISCONNECT ' + client._alias)
                 client.disconnect(client._alias, window)
 
