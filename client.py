@@ -27,11 +27,13 @@ class client:
     # ****************** ATTRIBUTES ******************
     _server = None
     _port = -1
+    _client = None
+    _client_port = None
     _quit = 0
     _username = None
     _alias = None
     _date = None
-    _socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
+    _socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM) ## ??
 
     # ******************** METHODS *******************
     # *
@@ -41,7 +43,7 @@ class client:
     # * @return USER_ERROR if the user is already registered
     # * @return ERROR if another error occurred
     @staticmethod
-    def register(window):
+    def register(user, window):
         """
         function performs registering user from the client side
         it sends username, alias and date of birth to server
@@ -51,20 +53,21 @@ class client:
         # preparing data
         date = client._date.replace("-", "/")
 
+        # creating socket
+        s = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
+
         # connect to server
-        client._socket.connect((client._server, client._port))
+        s.connect((client._server, client._port))
 
         # send data one by one
-        client._socket.send(bytes(client._username + "/0", 'UTF-8'))
-        client._socket.send(bytes(client._alias + "/0", 'UTF-8'))
-        client._socket.send(bytes(date + "/0", 'UTF-8'))
+        s.send(bytes("REGISTER/0", 'UTF-8'))
+        s.send(bytes(client._username + "/0", 'UTF-8'))
+        s.send(bytes(client._alias + "/0", 'UTF-8'))
+        s.send(bytes(date + "/0", 'UTF-8'))
 
         # receive response from server and close connection
-        response = int(client._socket.recv(1))
-        client._socket.close()
-
-        print(response)
-        print(type(response))
+        response = int(s.recv(1))
+        s.close()
 
         # get and interpret the response
         match response:
@@ -75,10 +78,10 @@ class client:
                 window['_SERVER_'].print("s> USERNAME IN USE")
                 return client.RC.USER_ERROR
             case 2:
-                window['_SERVER_'].print("s> FAIL")
+                window['_SERVER_'].print("s> REGISTER FAIL")
                 return client.RC.ERROR
             case _:
-                window['_SERVER_'].print("s> FAIL")
+                window['_SERVER_'].print("s> REGISTER FAIL")
                 return client.RC.ERROR
 
     # *
@@ -89,9 +92,39 @@ class client:
     # 	 * @return ERROR if another error occurred
     @staticmethod
     def unregister(user, window):
-        window['_SERVER_'].print("s> UNREGISTER OK")
-        #  Write your code here
-        return client.RC.ERROR
+        """
+        function performs unregistering client from the client side
+        it sends operation name and alias fo user that we want to unregister
+        and waits until the response if it succeed
+        """
+
+        # creating socket
+        s = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
+
+        # connect to server
+        s.connect((client._server, client._port))
+
+        # send data one by one
+        s.send(bytes("UNREGISTER/0", 'UTF-8'))
+        s.send(bytes(client._alias + "/0", 'UTF-8'))
+
+        # receive response from server and close connection
+        response = int(s.recv(1))
+        s.close()
+
+        match response:
+            case 0:
+                window['_SERVER_'].print("s> UNREGISTER OK")
+                return client.RC.OK
+            case 1:
+                window['_SERVER_'].print("s> USER DOES NOT EXIST")
+                return client.RC.USER_ERROR
+            case 2:
+                window['_SERVER_'].print("s> UNREGISTER FAIL")
+                return client.RC.ERROR
+            case _:
+                window['_SERVER_'].print("s> UNREGISTER FAIL")
+                return client.RC.ERROR
 
     # *
     # * @param user - User name to connect to the system
@@ -206,20 +239,24 @@ class client:
     @staticmethod
     def parseArguments():
         parser = argparse.ArgumentParser()
-        parser.add_argument('-s', type=str, help='Server IP', default=SERVER_IP)
-        parser.add_argument('-p', type=int, help='Server Port', default=SERVER_PORT)
+        parser.add_argument('-s', '--server-ip', type=str, help='Server IP', default=SERVER_IP)
+        parser.add_argument('-p', '--server-port', type=int, help='Server Port', default=SERVER_PORT)
+        parser.add_argument('-c', '--client-ip', type=str, help='Host IP', default=CLIENT_IP)
+        parser.add_argument('-cp', '--client-port', type=int, help='Client Port', default=CLIENT_PORT)
         args = parser.parse_args()
 
-        if (args.s is None):
+        if (args.server_ip is None):
             parser.error("Usage: python3 client.py -s <server> -p <port>")
             return False
 
-        if ((args.p < 1024) or (args.p > 65535)):
+        if ((args.server_port < 1024) or (args.server_port > 65535)):
             parser.error("Error: Port must be in the range 1024 <= port <= 65535")
             return False
 
-        client._server = args.s
-        client._port = args.p
+        client._server = args.server_ip
+        client._port = args.server_port
+        client._client = args.client_ip
+        client._client_port = args.client_port
 
         # not to wait 1 minute until the adress is free
         client._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -273,7 +310,7 @@ class client:
                     continue
 
                 window['_CLIENT_'].print('c> REGISTER ' + client._alias)
-                client.register(window)
+                client.register(client._alias, window)
 
             elif (event == 'UNREGISTER'):
                 window['_CLIENT_'].print('c> UNREGISTER ' + client._alias)
