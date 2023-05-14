@@ -27,8 +27,6 @@ mensaje recibido de un cliente*/
 /*El servidor debe ser capaz de gestionar varias conexiones simultaneamente (debe ser concurrente) 
 mediante el uso de multiples hilos (multithread). El servidor utilizara sockets TCP orientados a conexion*/
 
-// Registro de un cliente
-// Baja de un cliente
 // Conexion de un cliente
 // Desconexion de un cliente
 // Solicitud de un musuarios conectados 
@@ -84,6 +82,8 @@ void deal_with_message(void *conn){
     pthread_mutex_lock(&mutex_connection);
     struct client_connection *client_conn = (struct client_connection *) conn;
     message_not_copied = false;
+    char ip[MAX_SIZE];
+    strcpy(ip, inet_ntoa(client_conn->client_addr.sin_addr));
     pthread_cond_signal(&cond_message); 
     pthread_mutex_unlock(&mutex_connection);
 
@@ -91,12 +91,11 @@ void deal_with_message(void *conn){
     char operation[MAX_SIZE];  
     int number;
     char buf[MAX_SIZE];
-
     int res;
-    //char line[100];
     char name[MAX_SIZE];
 	char username[MAX_SIZE];   
 	char birthdate[MAX_SIZE];   //Format DD/MM/AAAA.
+    char port[MAX_SIZE];
 	//int status = 0;
     //char ip[32];
 	//int port;
@@ -182,6 +181,30 @@ void deal_with_message(void *conn){
 	    case 1: 
             pthread_mutex_lock(&mutex_server);
             printf("Start case 1\n");
+
+            // Get username.
+            res = readLine(client_sd, username, MAX_SIZE); 
+            if(res == -1){
+                fprintf(stderr, "Error: (Server) username could not be received.\n");
+                close(client_sd); 
+                pthread_exit(NULL);
+            } else if (res == 0){
+                fprintf(stderr, "Error: (Server) username could not be read.\n");
+                close(client_sd); 
+                pthread_exit(NULL);
+            }
+
+            // Call the service. 
+            res = unregister_client(username);
+
+		    pthread_mutex_unlock(&mutex_server);
+		    break;
+
+        // CONNECT CLIENT.
+        case 2:
+            pthread_mutex_lock(&mutex_server);
+            printf("Start case 2 - CONNECT\n");
+
             // Get username.
             res = readLine(client_sd, username, MAX_SIZE); 
             if(res == -1){
@@ -194,15 +217,33 @@ void deal_with_message(void *conn){
                 pthread_exit(NULL);
             }
 
-            // Save value to variable.
-            printf("%s", username);
-            printf("-\n-");
+            // Get port.
+            res = readLine(client_sd, port, MAX_SIZE); 
+            if(res == -1){
+                fprintf(stderr, "Error: (Server) Port could not be received.\n");
+                close(client_sd); 
+                pthread_exit(NULL);
+            } else if (res == 0){
+                fprintf(stderr, "Error: (Server) Port could not be read.\n");
+                close(client_sd); 
+                pthread_exit(NULL);
+            }
+
+            printf("%s", ip);
+            printf("\n");
 
             // Call the service. 
-            res = unregister_client(username);
+            res = connect_client(username, ip, port);
 
 		    pthread_mutex_unlock(&mutex_server);
-		    break;
+            break;
+        
+        // DISCONNECT CLIENT
+        case 3:
+            pthread_mutex_lock(&mutex_server);
+            printf("Start case 3 - DISCONNECT\n");
+            pthread_mutex_unlock(&mutex_server);
+            break;
         
         default:
             break;
@@ -310,7 +351,6 @@ int main(int argc, char *argv[]) {
         }
 
         if (pthread_create(&thid, &thread_attr, (void *) deal_with_message, &client_conn) == 0) {
-            printf("Connected!\n");
             // Wait until thread copy message.
             pthread_mutex_lock(&mutex_connection);
             while (message_not_copied)
