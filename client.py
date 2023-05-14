@@ -106,8 +106,8 @@ class client:
         s.connect((client._server, client._port))
 
         # send data one by one
-        s.send(bytes("UNREGISTER/0", 'UTF-8'))
-        s.send(bytes(client._alias + "/0", 'UTF-8'))
+        s.send(bytes("UNREGISTER\0", 'UTF-8'))
+        s.send(bytes(client._alias + "\0", 'UTF-8'))
 
         # receive response from server and close connection
         response = int(s.recv(1))

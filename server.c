@@ -181,6 +181,7 @@ void deal_with_message(void *conn){
         // UNREGISTER CLIENT
 	    case 1: 
             pthread_mutex_lock(&mutex_server);
+            printf("Start case 1\n");
             // Get username.
             res = readLine(client_sd, username, MAX_SIZE); 
             if(res == -1){
@@ -194,7 +195,8 @@ void deal_with_message(void *conn){
             }
 
             // Save value to variable.
-            //strcpy(username, buf);
+            printf("%s", username);
+            printf("-\n-");
 
             // Call the service. 
             res = unregister_client(username);
