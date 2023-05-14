@@ -108,14 +108,14 @@ void deal_with_message(void *conn){
     int client_sd = client_conn->client_sd; 
 
     // Deal with client request and make a response.
-    if(recvMessage(client_sd, (char *) &operation, 16) == -1){ 
+    if(recvMessage(client_sd, (char *) &operation, 256) == -1){ 
         fprintf(stderr, "Error: Problem with receiving a message.\n");
         close(client_sd); 
         pthread_exit(NULL);
     }
 
-    //printf("Operation received\n");
-    //printf("%s\n", operation);
+    printf("Operation received\n");
+    printf("%s\n", operation);
 
     //int aux = strcmp(operation, "REGISTER");
     //printf("%d\n", aux);

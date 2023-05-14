@@ -5,9 +5,65 @@
 
 #include "lines.h" 
 
+// ---------------------------------------
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <errno.h>
+
+int recvMessage(int socket, char *buffer, int len) {
+    int totalRead = 0;
+    int bytesRead;
+    
+    while (totalRead < len) {
+        bytesRead = read(socket, buffer + totalRead, 1); // leer un byte
+        
+        if (bytesRead <= 0) {
+            if (bytesRead == -1 && errno == EINTR)
+                continue; // reiniciar la lectura si se interrumpe
+            else
+                return -1; // error en la lectura
+        }
+        
+        if (buffer[totalRead] == '\0')
+            break; // se encontró el carácter nulo, salir del bucle
+        
+        totalRead++;
+    }
+    
+    return totalRead;
+}
+
+
+/*
+int recvMessage(int socket, char *buffer, int len) {
+    int r;
+    int l = len;
+    
+    do {
+        r = read(socket, buffer, l); // leer del socket
+        
+        // Verificar si los datos recibidos contienen el carácter nulo
+        void *nullCharPtr = memchr(buffer, '\0', r);
+        if (nullCharPtr != NULL) {
+            r = ((char*)nullCharPtr - buffer) + 1;  // Actualizar r para incluir el carácter nulo
+            break;
+        }
+        
+        l = l - r;
+        buffer = buffer + r;
+    } while ((l > 0) && (r > 0));  // Modificado r >= 0 a r > 0 para evitar bucle infinito cuando r = 0
+    
+    if (r < 0)
+        return (-1);   // fallo 
+    else
+        return (0);    // mensaje recibido 
+}*/
+
+// -----------------------------------------
 
 // Funciones auxiliares
-
 int sendMessage(int socket, char * buffer, int len){
 
 	int r;
@@ -50,14 +106,14 @@ int recvMessage(int socket, char *buffer, int len) {
         return (0);    // message received 
 } */
 
-
+/*
 int recvMessage(int socket, char *buffer, int len){
 	int r;
 	int l = len;
-		
+	
 	do {	
 		r = read(socket, buffer, l); // read from socket
-		l = l -r ;
+		l = l - r ;
 		buffer = buffer + r;
 	} while ((l>0) && (r>=0));
 	
@@ -65,7 +121,7 @@ int recvMessage(int socket, char *buffer, int len){
 		return (-1);   // fallo 
 	else
 		return(0);	// full length has been receive 
-}
+}*/
 
 
 ssize_t readLine(int fd, void *buffer, size_t n){

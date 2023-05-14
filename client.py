@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 import socket
 
 SERVER_IP = '127.0.0.1'
-SERVER_PORT = 2135
+SERVER_PORT = 2132
 CLIENT_IP = 'localhost'
 CLIENT_PORT = 8080
 NAME_MAX_LENGTH = 64
