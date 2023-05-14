@@ -80,9 +80,6 @@ int init() {
 
 // Function to deal with client request.
 void deal_with_message(void *conn){
-
-    //printf("Deal with message start\n");
-
     // copy message to local variable. 
     pthread_mutex_lock(&mutex_connection);
     struct client_connection *client_conn = (struct client_connection *) conn;
@@ -139,7 +136,6 @@ void deal_with_message(void *conn){
         // REGISTER CLIENT.
 	    case 0: 
 		    pthread_mutex_lock(&mutex_server);
-            printf("Start case 0\n");
             // Get name. 
             res = readLine(client_sd, name, MAX_SIZE); 
             if(res == -1){
@@ -151,10 +147,6 @@ void deal_with_message(void *conn){
                 close(client_sd); 
                 pthread_exit(NULL);
             }
-
-            // Save value to variable.
-            printf("Name:\n");
-            printf("%s\n", name);
 
             // Get username.
             res = readLine(client_sd, username, MAX_SIZE); 
@@ -168,10 +160,6 @@ void deal_with_message(void *conn){
                 pthread_exit(NULL);
             }
 
-            // Save value to variable.
-            printf("Username:\n");
-            printf("%s\n", username);
-
             // Get date.
             res = readLine(client_sd, birthdate, MAX_SIZE); 
             if(res == -1){
@@ -183,10 +171,6 @@ void deal_with_message(void *conn){
                 close(client_sd); 
                 pthread_exit(NULL);
             }
-
-            // Save value to variable.
-            printf("Birth:\n");
-            printf("%s\n", birthdate);
 
             // Call the service. 
             res = register_client(name, username, birthdate);

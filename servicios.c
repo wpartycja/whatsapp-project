@@ -54,6 +54,7 @@ int register_client(char *name, char *username, char *birthdate) {
 
 	// Get key as a string and a path to file.
 	const char *path = get_path(username);
+	printf("%s\n", path);
 
 	// Open the file.
 	if((desc = open(path, O_RDONLY)) == -1){
@@ -64,12 +65,18 @@ int register_client(char *name, char *username, char *birthdate) {
 
 			return 2;
 		}
+
+		char *aux = "\n";
 		// Write the information into the file.
 		write(desc, username, strlen(username));
+		write(desc, aux, strlen(aux));
 		write(desc, name, strlen(name));
+		write(desc, aux, strlen(aux));
 		write(desc, birthdate, strlen(birthdate));
+		write(desc, aux, strlen(aux));
 		snprintf(temp, 100, "%d", status);
 		write(desc, temp, strlen(temp));
+		write(desc, aux, strlen(aux));
 
 		printf("Values for username %s: name =\"%s\", birthdate = %s\n", username, name, birthdate); 
 		printf("REGISTER <%s> OK\n", username);
