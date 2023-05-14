@@ -81,7 +81,7 @@ int init() {
 // Function to deal with client request.
 void deal_with_message(void *conn){
 
-    printf("Deal with message start\n");
+    //printf("Deal with message start\n");
 
     // copy message to local variable. 
     pthread_mutex_lock(&mutex_connection);
@@ -91,13 +91,15 @@ void deal_with_message(void *conn){
     pthread_mutex_unlock(&mutex_connection);
 
     // Variables to save values.
-    char buf[MAX_SIZE];
+    char operation[MAX_SIZE];  
     int number;
+    char buf[MAX_SIZE];
+
     int res;
-    char operation[MAX_SIZE];   
-    char *name = malloc(sizeof(char) * MAX_SIZE);
-	char *username = malloc(sizeof(char) * MAX_SIZE);   
-	char *birthdate = malloc(sizeof(char) * MAX_SIZE);   //Format DD/MM/AAAA.
+    //char line[100];
+    char name[MAX_SIZE];
+	char username[MAX_SIZE];   
+	char birthdate[MAX_SIZE];   //Format DD/MM/AAAA.
 	//int status = 0;
     //char ip[32];
 	//int port;
@@ -106,44 +108,19 @@ void deal_with_message(void *conn){
     int client_sd = client_conn->client_sd; 
 
     // Deal with client request and make a response.
-    if(recvMessage(client_sd, (char *) &operation, 20) == -1){ 
+    if(recvMessage(client_sd, (char *) &operation, 16) == -1){ 
         fprintf(stderr, "Error: Problem with receiving a message.\n");
         close(client_sd); 
         pthread_exit(NULL);
     }
 
-    printf("Operation received\n");
-    printf("%s\n", operation);
+    //printf("Operation received\n");
+    //printf("%s\n", operation);
 
-    if(recvMessage(client_sd, (char *) name, MAX_SIZE) == -1){ 
-        fprintf(stderr, "Error: Problem with receiving a message.\n");
-        close(client_sd); 
-        pthread_exit(NULL);
-    }
-
-    printf("Name received\n");
-    printf("%s\n", name);
-
-    if(recvMessage(client_sd, (char *) username, MAX_SIZE) == -1){ 
-        fprintf(stderr, "Error: Problem with receiving a message.\n");
-        close(client_sd); 
-        pthread_exit(NULL);
-    }
-
-    printf("Username received\n");
-    printf("%s\n", username);
-
-    if(recvMessage(client_sd, (char *) birthdate, MAX_SIZE) == -1){ 
-        fprintf(stderr, "Error: Problem with receiving a message.\n");
-        close(client_sd); 
-        pthread_exit(NULL);
-    }
-
-    printf("Birthdate received\n");
-    printf("%s\n", birthdate);
+    //int aux = strcmp(operation, "REGISTER");
+    //printf("%d\n", aux);
 
     if (strcmp(operation, "REGISTER") == 0) {
-        printf("Es register\n");
         number = 0;
     } else if (strcmp(operation, "UNREGISTER") == 0) {
         number = 1;
@@ -159,7 +136,7 @@ void deal_with_message(void *conn){
         number = 6;
     } else if (strcmp(operation, "CONNECTEDUSERS") == 0) {
         number = 7;
-    }
+    } 
 
     switch(number){
         // REGISTER CLIENT.
@@ -167,7 +144,7 @@ void deal_with_message(void *conn){
 		    pthread_mutex_lock(&mutex_server);
             printf("Start case 0\n");
             // Get name. 
-            res = readLine(client_sd, buf, MAX_SIZE); 
+            res = readLine(client_sd, name, MAX_SIZE); 
             if(res == -1){
                 fprintf(stderr, "Error: (Server) name could not be received.\n");
                 close(client_sd);
@@ -179,11 +156,12 @@ void deal_with_message(void *conn){
             }
 
             // Save value to variable.
-            strcpy(name, buf); 
-            printf("%s", name);
+            //strcpy(name, buf); 
+            printf("Name:\n");
+            printf("%s\n", name);
 
             // Get username.
-            res = readLine(client_sd, buf, MAX_SIZE); 
+            res = readLine(client_sd, username, MAX_SIZE); 
             if(res == -1){
                 fprintf(stderr, "Error: (Server) username could not be received.\n");
                 close(client_sd); 
@@ -195,11 +173,12 @@ void deal_with_message(void *conn){
             }
 
             // Save value to variable.
-            strcpy(username, buf); 
-            printf("%s", username);
+            //strcpy(username, buf); 
+            printf("Username:\n");
+            printf("%s\n", username);
 
             // Get date.
-            res = readLine(client_sd, buf, MAX_SIZE); 
+            res = readLine(client_sd, birthdate, MAX_SIZE); 
             if(res == -1){
                 fprintf(stderr, "Error: (Server) birthdate could not be received.\n");
                 close(client_sd);
@@ -211,15 +190,12 @@ void deal_with_message(void *conn){
             }
 
             // Save value to variable.
-            strcpy(birthdate, buf); 
-            printf("%s", birthdate);
+            //strcpy(birthdate, buf); 
+             printf("Birth:\n");
+            printf("%s\n", birthdate);
 
             // Call the service. 
-            res = register_client(name, username, birthdate);
-
-            free(name);
-            free(username);
-            free(birthdate);
+            //res = register_client(name, username, birthdate);
 
 		    pthread_mutex_unlock(&mutex_server);
 		    break;
@@ -228,7 +204,7 @@ void deal_with_message(void *conn){
 	    case 1: 
             pthread_mutex_lock(&mutex_server);
             // Get username.
-            res = readLine(client_sd, buf, MAX_SIZE); 
+            res = readLine(client_sd, username, MAX_SIZE); 
             if(res == -1){
                 fprintf(stderr, "Error: (Server) Username could not be received.\n");
                 close(client_sd); 
@@ -240,7 +216,7 @@ void deal_with_message(void *conn){
             }
 
             // Save value to variable.
-            strcpy(username, buf);
+            //strcpy(username, buf);
 
             // Call the service. 
             res = unregister_client(username);
@@ -251,8 +227,6 @@ void deal_with_message(void *conn){
         default:
             break;
     }     
-
-    //free(operation);
 
     // Send response to client.
     sprintf(buf, "%d", res); // Convert response to string.

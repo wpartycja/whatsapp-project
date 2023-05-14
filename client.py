@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 import socket
 
 SERVER_IP = '127.0.0.1'
-SERVER_PORT = 2137
+SERVER_PORT = 2135
 CLIENT_IP = 'localhost'
 CLIENT_PORT = 8080
 NAME_MAX_LENGTH = 64
@@ -60,13 +60,14 @@ class client:
         s.connect((client._server, client._port))
 
         # send data one by one
-        s.send(bytes("REGISTER/0", 'UTF-8'))
-        s.send(bytes(client._username + "/0", 'UTF-8'))
-        s.send(bytes(client._alias + "/0", 'UTF-8'))
-        s.send(bytes(date + "/0", 'UTF-8'))
+        #s.send(bytes("REGISTER, " + client._username + ", " + client._alias + ", " + date + "\0", 'UTF-8'))
+        s.send(bytes("REGISTER\0", 'UTF-8'))
+        s.send(bytes(client._username + "\0", 'UTF-8'))
+        s.send(bytes(client._alias + "\0", 'UTF-8'))
+        s.send(bytes(date + "\0", 'UTF-8'))
 
         # receive response from server and close connection
-        response = int(s.recv(1))
+        response = int(s.recv(1).decode())
         s.close()
 
         # get and interpret the response
