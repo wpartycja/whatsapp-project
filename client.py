@@ -22,6 +22,10 @@ BUF_SIZE = 256
 #  @TODO handle '\0' sign?????
 #  @TODO mutex for printing?
 
+#  @TODO test connection for multiple clients
+
+#  @TODO  size of message - block or send it multiple times to server if message is long?
+
 
 class client:
 
@@ -43,7 +47,7 @@ class client:
     _alias = None
     _date = None
 
-    _client_ip = None
+    _client_ip = ''
     _client_port = None
 
     _socket = None
@@ -292,10 +296,42 @@ class client:
     # * @return ERROR the user does not exist or another error occurred
     @staticmethod
     def send(user, message, window):
-        window['_SERVER_'].print("s> SEND MESSAGE OK")
-        print("SEND " + user + " " + message)
-        #  Write your code here
-        return client.RC.ERROR
+        # creating socket
+        s = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
+
+        # connect to server
+        s.connect((client._server, client._port))
+
+        # send data - operation name + alias
+        s.send(bytes("SEND\0", 'UTF-8'))
+        s.send(bytes(client._alias + "\0", 'UTF-8'))
+        s.send(bytes(user + "\0", 'UTF-8'))
+        s.send(bytes(message + '\0', 'UTF-8'))
+
+        # receive response with set timeout from server and close connection
+        s.settimeout(TIMEOUT)
+        try:
+            response = int(s.recv(1).decode())
+            if response == 0:
+                message_id = int(s.recv(3).decode())
+        except socket.timeout:
+            # Handle a timeout exception
+            sg.Popup(f'Timeout occured, no data received within {TIMEOUT} sec', title='TIMEOUT', button_type=5, auto_close=True, auto_close_duration=3)
+            response = 2
+        s.close()
+
+        match response:
+            case 0:
+                print("SEND " + user + " " + message)
+                window['_SERVER_'].print(f"s> SEND OK - MESSAGE {message_id}")
+                return client.RC.OK
+            case 1:
+                window['_SERVER_'].print("s>  SEND FAIL / USER DOES NOT EXIST")
+                return client.RC.USER_ERROR
+            # not only for case 2 but for any other
+            case _:
+                window['_SERVER_'].print("s> SEND FAIL")
+                return client.RC.ERROR
 
     # *
     # * @param user    - Receiver user name
@@ -372,8 +408,6 @@ class client:
         parser = argparse.ArgumentParser()
         parser.add_argument('-s', '--server-ip', type=str, help='Server IP', default=SERVER_IP)
         parser.add_argument('-p', '--server-port', type=int, help='Server Port', default=SERVER_PORT)
-        parser.add_argument('-c', '--client-ip', type=str, help='Host IP', default=CLIENT_IP)
-        parser.add_argument('-cp', '--client-port', type=int, help='Client Port', default=CLIENT_PORT)
         args = parser.parse_args()
 
         if (args.server_ip is None):
@@ -386,8 +420,6 @@ class client:
 
         client._server = args.server_ip
         client._port = args.server_port
-        client._client_ip = args.client_ip
-        client._client_port = args.client_port
 
         return True
 
@@ -470,12 +502,24 @@ class client:
                 client.disconnect(client._alias, window)
 
             elif (event == 'SEND'):
-                window['_CLIENT_'].print('c> SEND ' + values['_INDEST_'] + " " + values['_IN_'])
 
-                if (values['_INDEST_'] != '' and values['_IN_'] != '' and values['_INDEST_'] != 'User' and values['_IN_'] != 'Text') :
-                    client.send(values['_INDEST_'], values['_IN_'], window)
+                if client._alias is None:
+                    sg.Popup('NOT REGISTERED', title='ERROR', button_type=5, auto_close=True, auto_close_duration=1)
+                    continue
+                elif client._client_port is None:
+                    sg.Popup('NOT CONNECTED', title='ERROR', button_type=5, auto_close=True, auto_close_duration=1)
+                    continue
+                else: 
+                    window['_CLIENT_'].print('c> SEND ' + values['_INDEST_'] + " " + values['_IN_'])
+
+                if (values['_INDEST_'] == '' or values['_IN_'] == ''):
+                    window['_CLIENT_'].print("Syntax error. Destination user and message cannot be empty.")
+                elif (values['_INDEST_'] == 'User' or values['_IN_'] == 'Text'):
+                    window['_CLIENT_'].print("Syntax error. Values should be other than default ones")
+                elif (len(values['_IN_']) >= 255):
+                    window['_CLIENT_'].print("Syntax error. Message should be shorter than 255 signs")              
                 else:
-                    window['_CLIENT_'].print("Syntax error. Insert <destUser> <message>")
+                    client.send(values['_INDEST_'], values['_IN_'], window)    
 
             elif (event == 'SENDATTACH'):
 
