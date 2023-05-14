@@ -76,10 +76,10 @@ int register_client(char *name, char *username, char *birthdate) {
 		write(desc, aux, strlen(aux));
 
 		printf("Values for username %s: name =\"%s\", birthdate = %s\n", username, name, birthdate); 
-		printf("REGISTER <%s> OK\n", username);
+		printf("s> REGISTER <%s> OK\n", username);
 	} else {
 		// If the file already exists, we cant register the user.
-		printf("REGISTER <%s> FAIL\n", username);
+		printf("s> REGISTER <%s> FAIL\n", username);
 		printf("----------------------------------------\n");
 		return 1;
 	}
@@ -102,9 +102,9 @@ int unregister_client(char *username){
 
 	// Try to delete the file.
 	if(remove(path) == 0) {
-		printf("UNREGISTER <%s> OK\n", username); 
+		printf("s> UNREGISTER <%s> OK\n", username); 
 	} else {
-		printf("UNREGISTER <%s> FAIL\n", username);
+		printf("s> UNREGISTER <%s> FAIL\n", username);
 		printf("----------------------------------------\n");
 
 		return 1;
@@ -144,7 +144,7 @@ int connect_client(char *username, char *ip, char *port) {
     desc = fopen(path, "r+");
     if (desc == NULL) {
 		// In case the user doesn't exist.
-        printf("CONNECT <%s> FAIL\n", username);
+        printf("s> CONNECT <%s> FAIL\n", username);
         printf("----------------------------------------\n");
         return 1; 
     }
@@ -172,14 +172,14 @@ int connect_client(char *username, char *ip, char *port) {
 
 			fflush(desc);
 
-			printf("CONNECT <%s> OK\n", username);
+			printf("s> CONNECT <%s> OK\n", username);
 			return 0;
 		}
 
 		// Check if the line is 0 (disconnected).
 		if(strcmp(line, "1\n") == 0){
 			//lineFound = 1;
-			printf("CONNECT <%s> OK\n", username);
+			printf("s> CONNECT <%s> OK\n", username);
 			return 2;
 		}
 	}
@@ -232,19 +232,47 @@ int connect_client(char *username, char *ip, char *port) {
     return 0; // Successful connection.
 	*/
 
-// REMEMBER TO CLOSE FILE
+// REMEMBER TO CLOSE FILE !!!!!!!!
+
+/*
+Cuando un cliente quiere dejar de recibir mensajes del servicio debe enviar el mensaje correspondiente 
+indicando el nombre de usuario. 
+
+Cuando el servidor reciba este mensaje realizara ́ lo siguiente:
+• Buscar el nombre de usuario indicado entre los usuarios registrados. 
+
+• Si el usuario existe y su estado es 
+“Conectado”:
+	– Borra los campos IP y puerto del usuario. 
+	– Se cambia su estado a “Desconectado”.
+
+• Si no existe, se env ́ıa una notificaci ́on de error al cliente.
+
+Cuando la operacio ́n finaliza con  ́exito, se debe mostrar por consola lo siguiente:
+	s> DISCONNECT <userName> OK
+donde <userName> indica el alias del usuario registrado.
+
+En caso de error, se mostrara ́:
+	s> DISCONNECT <userName> FAIL
+donde <userName> indica el alias del usuario registrado.*/
+
+/* 0 en caso de  ́exito, 
+3 en cualquier otro caso.*/
+
 
 // Server disconnects a client.
 int disconnect_client(char *username) {
-    const char* path = get_path(username);
-    char line[MAX_SIZE];
+	char line[MAX_SIZE];
     long int linePosition = -1;
     FILE *desc;
+
+	// Get path of the file that contains the information.
+    const char* path = get_path(username);
   
     // Open the file and check if the user exists.
     desc = fopen(path, "r+");
     if (desc == NULL) {
-        // In case the user doesn't exist.
+        // If the user doesn't exist.
         printf("s> DISCONNECT <%s> FAIL\n", username);
         printf("----------------------------------------\n");
         return 1; 
@@ -254,17 +282,33 @@ int disconnect_client(char *username) {
     while (fgets(line, MAX_SIZE, desc) != NULL) {
         linePosition = ftell(desc) - strlen(line);
 
-        // Check if the line represents a connected user.
+		// Check if the user is not connected.
+		if (strcmp(line, "0\n") == 0) {
+			printf("s> DISCONNECT <%s> FAIL\n", username);
+        	printf("----------------------------------------\n");
+			return 2;
+		}
+
+        // Check if the line is 1 (connected).
         if (strcmp(line, "1\n") == 0) {
             // Change status to disconnected.
             fseek(desc, linePosition, SEEK_SET);
             fwrite("0\n", sizeof(char), strlen("0\n"), desc);
 
-            // Clear IP and port fields.
+            // Clear IP.
             linePosition = ftell(desc);
             fseek(desc, linePosition, SEEK_SET);
-            fwrite("\n", sizeof(char), strlen("\n"), desc);
-            fwrite("\n", sizeof(char), strlen("\n"), desc);
+
+			for(int i=0; i <= 15; i++){
+				fwrite(" ", sizeof(char), strlen(" "), desc);
+			}
+
+			// Get port line and clear it.
+			fgets(line, MAX_SIZE, desc);
+
+			for(int i=0; i <= 15; i++){
+				fwrite(" ", sizeof(char), strlen(" "), desc);
+			}
 
             fflush(desc);
 
@@ -273,9 +317,7 @@ int disconnect_client(char *username) {
             return 0;
         }
     }
-  
-    // If the end of the file is reached without finding the user or the user is not connected.
-    printf("s> DISCONNECT <%s> FAIL\n", username);
+	printf("s> DISCONNECT <%s> FAIL\n", username);
     printf("----------------------------------------\n");
-    return 2;
+	return 3;
 }

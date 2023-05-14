@@ -203,8 +203,6 @@ void deal_with_message(void *conn){
         // CONNECT CLIENT.
         case 2:
             pthread_mutex_lock(&mutex_server);
-            printf("Start case 2 - CONNECT\n");
-
             // Get username.
             res = readLine(client_sd, username, MAX_SIZE); 
             if(res == -1){
@@ -229,9 +227,6 @@ void deal_with_message(void *conn){
                 pthread_exit(NULL);
             }
 
-            printf("%s", ip);
-            printf("\n");
-
             // Call the service. 
             res = connect_client(username, ip, port);
 
@@ -242,7 +237,23 @@ void deal_with_message(void *conn){
         case 3:
             pthread_mutex_lock(&mutex_server);
             printf("Start case 3 - DISCONNECT\n");
-            pthread_mutex_unlock(&mutex_server);
+
+            // Get username.
+            res = readLine(client_sd, username, MAX_SIZE); 
+            if(res == -1){
+                fprintf(stderr, "Error: (Server) Username could not be received.\n");
+                close(client_sd); 
+                pthread_exit(NULL);
+            } else if (res == 0){
+                fprintf(stderr, "Error: (Server) Username could not be read.\n");
+                close(client_sd); 
+                pthread_exit(NULL);
+            }
+
+            // Call the service. 
+            res = disconnect_client(username);
+
+		    pthread_mutex_unlock(&mutex_server);
             break;
         
         default:
