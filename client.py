@@ -39,7 +39,6 @@ class client:
     # ****************** ATTRIBUTES ******************
     _server = None
     _port = -1
-
     _quit = 0
 
     _username = None
@@ -183,6 +182,25 @@ class client:
     # * @return OK if successful
     # * @return USER_ERROR if the user does not exist or if it is already connected
     # * @return ERROR if another error occurred
+
+    def start_connection():
+        client._socket.listen()
+        print('TCP client is listening')
+
+        try:
+            while True:
+                conn, addr = client._socket.accept()
+                if client._disconnect.is_set():
+                    break
+                print(f'Connected to client from host {addr[0]}, on port {addr[1]}')
+                while True:
+                    message = conn.recv(BUF_SIZE)  # decode @TODO:  decode????
+                    if not message:
+                        break
+                    print(f'Thread id: {threading.get_native_id()}, received message: {message.decode("utf-8")}')
+        except socket.error:
+            print("Error in socket - maybe socket is shutted down")
+            return
 
     @staticmethod
     def connect(user, window):
@@ -523,7 +541,6 @@ class client:
                 if (client._alias is None):
                     sg.Popup('NOT REGISTERED', title='ERROR', button_type=5, auto_close=True, auto_close_duration=1)
                     continue
-
                 window['_CLIENT_'].print('c> UNREGISTER ' + client._alias)
                 res = client.unregister(client._alias, window)
                 print(res)
