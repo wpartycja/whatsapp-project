@@ -6,9 +6,8 @@ import socket
 import threading
 
 SERVER_IP = 'localhost'
-SERVER_PORT = 2137
+SERVER_PORT = 8080
 CLIENT_IP = ''
-CLIENT_PORT = 8080
 
 NAME_MAX_LENGTH = 64
 ALIAS_MAX_LENGTH = 32
@@ -356,9 +355,51 @@ class client:
 
     @staticmethod
     def connectedUsers(window):
-        window['_SERVER_'].print("s> CONNECTED USERS OK")
-        #  Write your code here
-        return client.RC.ERROR
+        # creating socket
+        s = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
+
+        # connect to server
+        s.connect((client._server, client._port))
+
+        # send data - operation name + alias
+        s.send(bytes("CONNECT\0", 'UTF-8'))
+
+        # receive response with set timeout from server and close connection
+        s.settimeout(TIMEOUT)
+        try:
+            # recv() capacity is 131072, so we assume less than 3970 users - operation safe
+            max_size = s.getsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF)
+            response = s.recv(max_size)
+            data_split = response.split(b'\0')
+            if (int(data_split[0].decode()) != 0):
+                operation = int(data_split[0].decode())
+            elif len(data_split) >= 4:  # at least: operation_id, number of users, user, empty string
+                operation = int(data_split[0].decode())
+                n_users = data_split[1].decode()
+                users = [user.decode() for user in data_split[2:-1]]
+            # in case of any other error
+            else:
+                print("Communication error")
+                operation = 2
+        except socket.timeout:
+            # Handle a timeout exception
+            sg.Popup(f'Timeout occured, no data received within {TIMEOUT} sec', title='TIMEOUT', button_type=5, auto_close=True, auto_close_duration=3)
+            response = 3
+        s.close()
+
+        # print response on the frontend
+        match operation:
+            case 0:
+                users_str = ', '.join(users)
+                window['_SERVER_'].print(f's> CONNECTED USERS {n_users} OK - {users_str}')
+                return client.RC.OK
+            case 1:
+                window['_SERVER_'].print("s> CONNECTED USERS FAIL / USER IS NOT CONNECTED")
+                return client.RC.USER_ERROR
+            # not only for case 2 but for any other
+            case _:
+                window['_SERVER_'].print("s> CONNECTED USERS FAIL")
+                return client.RC.ERROR
 
     @staticmethod
     def window_register():
