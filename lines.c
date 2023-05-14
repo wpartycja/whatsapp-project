@@ -2,16 +2,11 @@
 #include <errno.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "lines.h" 
 
-// ---------------------------------------
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <errno.h>
-
+// Auxiliary functions.
 int recvMessage(int socket, char *buffer, int len) {
     int totalRead = 0;
     int bytesRead;
@@ -35,35 +30,29 @@ int recvMessage(int socket, char *buffer, int len) {
     return totalRead;
 }
 
+// ---------------------------------------
+ssize_t readLine(int socket, char *buffer, size_t maxlen) {
+    ssize_t numRead = 0;
+    char ch = '\0';
+    size_t i = 0;
 
-/*
-int recvMessage(int socket, char *buffer, int len) {
-    int r;
-    int l = len;
-    
-    do {
-        r = read(socket, buffer, l); // leer del socket
-        
-        // Verificar si los datos recibidos contienen el carácter nulo
-        void *nullCharPtr = memchr(buffer, '\0', r);
-        if (nullCharPtr != NULL) {
-            r = ((char*)nullCharPtr - buffer) + 1;  // Actualizar r para incluir el carácter nulo
-            break;
+    while ((numRead = recvMessage(socket, &ch, 1)) == 1) {
+        if (ch == '\0') {
+            buffer[i++] = '\0';
+            return i - 1; // return number of bytes read, excluding null terminator
         }
-        
-        l = l - r;
-        buffer = buffer + r;
-    } while ((l > 0) && (r > 0));  // Modificado r >= 0 a r > 0 para evitar bucle infinito cuando r = 0
-    
-    if (r < 0)
-        return (-1);   // fallo 
-    else
-        return (0);    // mensaje recibido 
-}*/
 
-// -----------------------------------------
+        buffer[i++] = ch;
+        if (i == maxlen - 1) {
+            buffer[i] = '\0';
+            return i;
+        }
+    }
 
-// Funciones auxiliares
+    return (numRead == 0) ? i : -1;
+}
+// ---------------------------------------
+
 int sendMessage(int socket, char * buffer, int len){
 
 	int r;
@@ -82,51 +71,9 @@ int sendMessage(int socket, char * buffer, int len){
 }
 
 /*
-int recvMessage(int socket, char *buffer, int len) {
-    int r;
-    int l = len;
-    
-    do {
-        r = read(socket, buffer, l); // read from socket
-        
-        // Check if the received data contains null character
-        void *nullCharPtr = memchr(buffer, '\0', r);
-        if (nullCharPtr != NULL) {
-            r = ((char*)nullCharPtr - buffer) + 1;  // Update r to include the null character
-            break;
-        }
-        
-        l = l - r;
-        buffer = buffer + r;
-    } while ((l > 0) && (r >= 0));
-    
-    if (r < 0)
-        return (-1);   // failure 
-    else
-        return (0);    // message received 
-} */
-
-/*
-int recvMessage(int socket, char *buffer, int len){
-	int r;
-	int l = len;
-	
-	do {	
-		r = read(socket, buffer, l); // read from socket
-		l = l - r ;
-		buffer = buffer + r;
-	} while ((l>0) && (r>=0));
-	
-	if (r < 0)
-		return (-1);   // fallo 
-	else
-		return(0);	// full length has been receive 
-}*/
-
-
 ssize_t readLine(int fd, void *buffer, size_t n){
-	ssize_t numRead;  /* num of bytes fetched by last read() */
-	size_t totRead;	  /* total bytes read so far */
+	ssize_t numRead;  // num of bytes fetched by last read() 
+	size_t totRead;	  // total bytes read so far 
 	char *buf;
 	char ch;
 	int flag = 0;
@@ -141,7 +88,7 @@ ssize_t readLine(int fd, void *buffer, size_t n){
 	
 	for (;;) {
 		//printf("Entra for\n");
-		numRead = read(fd, &ch, 1);	/* read a byte */
+		numRead = read(fd, &ch, 1);	// read a byte 
 		//printf("%ld\n", numRead);
 
 		if (ch == '\0'){
@@ -154,24 +101,24 @@ ssize_t readLine(int fd, void *buffer, size_t n){
 
     	if (numRead == -1) {
 			printf("numread -1\n");	
-            if (errno == EINTR)	/* interrupted -> restart read() */
+            if (errno == EINTR)	// interrupted -> restart read() 
         		continue;
         	else
-				return -1;		/* some other error */
-		} else if (numRead == 0) {	/* EOF */
+				return -1;		// some other error 
+		} else if (numRead == 0) {	// EOF 
 			printf("numread 0\n");
-        	if (totRead == 0)	/* no byres read; return 0 */
+        	if (totRead == 0)	// no byres read; return 0 
            		return 0;
 			else
           		break;
-        } else {			/* numRead must be 1 if we get here*/
+        } else {			// numRead must be 1 if we get here
         	if (ch == '\n')
            		break;
         	if (ch == '\0'){
 				//printf("Es barra 0\n");
           		break;
 			}
-            if (totRead < n - 1) {		/* discard > (n-1) bytes */
+            if (totRead < n - 1) {		// discard > (n-1) bytes 
 				totRead++;
 				*buf++ = ch; 
 			}
@@ -181,4 +128,4 @@ ssize_t readLine(int fd, void *buffer, size_t n){
 	*buf = '\0';
     
 	return totRead;
-}
+} */

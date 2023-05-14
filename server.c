@@ -117,9 +117,6 @@ void deal_with_message(void *conn){
     printf("Operation received\n");
     printf("%s\n", operation);
 
-    //int aux = strcmp(operation, "REGISTER");
-    //printf("%d\n", aux);
-
     if (strcmp(operation, "REGISTER") == 0) {
         number = 0;
     } else if (strcmp(operation, "UNREGISTER") == 0) {
@@ -156,7 +153,6 @@ void deal_with_message(void *conn){
             }
 
             // Save value to variable.
-            //strcpy(name, buf); 
             printf("Name:\n");
             printf("%s\n", name);
 
@@ -173,7 +169,6 @@ void deal_with_message(void *conn){
             }
 
             // Save value to variable.
-            //strcpy(username, buf); 
             printf("Username:\n");
             printf("%s\n", username);
 
@@ -190,12 +185,11 @@ void deal_with_message(void *conn){
             }
 
             // Save value to variable.
-            //strcpy(birthdate, buf); 
-             printf("Birth:\n");
+            printf("Birth:\n");
             printf("%s\n", birthdate);
 
             // Call the service. 
-            //res = register_client(name, username, birthdate);
+            res = register_client(name, username, birthdate);
 
 		    pthread_mutex_unlock(&mutex_server);
 		    break;
