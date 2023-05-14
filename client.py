@@ -154,13 +154,6 @@ class client:
                 window['_SERVER_'].print("s> UNREGISTER FAIL")
                 return client.RC.ERROR
 
-    # *
-    # * @param user - User name to connect to the system
-    # *
-    # * @return OK if successful
-    # * @return USER_ERROR if the user does not exist or if it is already connected
-    # * @return ERROR if another error occurred
-
     def start_connection():
         client._socket.listen()
         print('TCP client is listening')
@@ -177,8 +170,15 @@ class client:
                         break
                     print(f'Thread id: {threading.get_native_id()}, received message: {message.decode("utf-8")}')
         except socket.error:
-            print("Error in socket - maybe socket is shutted down")
+            print("Socket has been shutted down - user disconnected")
             return
+
+    # *
+    # * @param user - User name to connect to the system
+    # *
+    # * @return OK if successful
+    # * @return USER_ERROR if the user does not exist or if it is already connected
+    # * @return ERROR if another error occurred
 
     @staticmethod
     def connect(user, window):
