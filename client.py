@@ -5,14 +5,22 @@ from enum import Enum
 import argparse
 from datetime import datetime, timedelta
 import socket
+import threading
 
 SERVER_IP = 'localhost'
 SERVER_PORT = 2137
-CLIENT_IP = 'localhost'
+CLIENT_IP = ''
 CLIENT_PORT = 8080
+
 NAME_MAX_LENGTH = 64
 ALIAS_MAX_LENGTH = 32
 TIMEOUT = 3
+BUF_SIZE = 256
+
+#  @TODO: broken pipe error handling?
+
+#  @TODO handle '\0' sign?????
+#  @TODO mutex for printing?
 
 
 class client:
@@ -28,13 +36,19 @@ class client:
     # ****************** ATTRIBUTES ******************
     _server = None
     _port = -1
-    _client = None
-    _client_port = None
+    
     _quit = 0
+
     _username = None
     _alias = None
     _date = None
-    _socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
+
+    _client_ip = None
+    _client_port = None
+
+    _socket = None
+    _connection_thread = None
+    _disconnect = False
 
     # ******************** METHODS *******************
     # *
@@ -66,8 +80,8 @@ class client:
         s.send(bytes(client._alias + "\0", 'UTF-8'))
         s.send(bytes(date + "\0", 'UTF-8'))
 
-        s.settimeout(TIMEOUT)
         # receive response with set timeout from server and close connection
+        s.settimeout(TIMEOUT)
         try:
             response = int(s.recv(1).decode())
         except socket.timeout:
@@ -113,8 +127,8 @@ class client:
         s.send(bytes("UNREGISTER\0", 'UTF-8'))
         s.send(bytes(client._alias + "\0", 'UTF-8'))
 
-        s.settimeout(TIMEOUT)
         # receive response with set timeout from server and close connection
+        s.settimeout(TIMEOUT)
         try:
             response = int(s.recv(1).decode())
         except socket.timeout:
@@ -143,8 +157,36 @@ class client:
     # * @return USER_ERROR if the user does not exist or if it is already connected
     # * @return ERROR if another error occurred
 
+    def start_connection():
+        client._socket.listen()
+        print('TCP client is listening')
+
+        try:
+            while True:
+                conn, addr = client._socket.accept()
+                print(f'Connected to client from host {addr[0]}, on port {addr[1]}')
+                while True:
+                    message = conn.recv(BUF_SIZE) # decode @TODO:  decode????
+                    if not message:
+                        break
+                    print(f'Thread id: {threading.get_native_id()}, received message: {message.decode("utf-8")}')
+        except socket.error:
+            print("Error in socket")
+
     @staticmethod
     def connect(user, window):
+
+        # client is behaving like server here so we create socket for communication here and bind it
+        client._socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
+        # not to wait 1 minute until the adress is free
+        client._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        # the way to find free port
+        client._socket.bind((client._client_ip, 0))
+        # search for the the free port that system gave us in this network
+        client._client_port = client._socket.getsockname()[1]
+        print(f'Client port is: {client._client_port}')
+        # creating a thread but not starting it since we don't know if its a legal action without resposne from server
+        client._connection_thread = threading.Thread(target=start_connection, args=(client._socket,))
 
         # creating socket
         s = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
@@ -157,8 +199,8 @@ class client:
         s.send(bytes(client._alias + "\0", 'UTF-8'))
         s.send(bytes(str(client._client_port) + "\0", 'UTF-8'))
 
-        s.settimeout(TIMEOUT)
         # receive response with set timeout from server and close connection
+        s.settimeout(TIMEOUT)
         try:
             response = int(s.recv(1).decode())
         except socket.timeout:
@@ -170,6 +212,8 @@ class client:
         # print response on the frontend
         match response:
             case 0:
+                # if it's ok, we are starting the 
+                client._connection_thread.start()
                 window['_SERVER_'].print("s> CONNECT OK")
                 return client.RC.OK
             case 1:
@@ -214,9 +258,12 @@ class client:
             response = 3
         s.close()
 
+        #  @TODO: add closing the thread
+
         # print response on the frontend
         match response:
             case 0:
+                client._connection_thread.
                 window['_SERVER_'].print("s> DISCONNECT OK")
                 return client.RC.OK
             case 1:
@@ -289,10 +336,10 @@ class client:
             if event == "SUBMIT":
                 if (values['_REGISTERNAME_'] == 'Text'
                    or values['_REGISTERNAME_'] == ''
-                   or len(values['_REGISTERNAME_']) > NAME_MAX_LENGTH - 2  # -2 beacuse of additional \0'
+                   or len(values['_REGISTERNAME_']) > NAME_MAX_LENGTH - 1  # -2 beacuse of additional /0'
                    or values['_REGISTERALIAS_'] == 'Text'
                    or values['_REGISTERALIAS_'] == ''
-                   or len(values['_REGISTERALIAS_']) > ALIAS_MAX_LENGTH - 2
+                   or len(values['_REGISTERALIAS_']) > ALIAS_MAX_LENGTH - 1
                    or values['_REGISTERDATE_'] == ''
                    or datetime.strptime(values['_REGISTERDATE_'], "%d-%m-%Y") > datetime.now() - timedelta(days=1)):
                     sg.Popup('Registration error', title='Please fill in the fields to register.', button_type=5, auto_close=True, auto_close_duration=1)
@@ -333,11 +380,8 @@ class client:
 
         client._server = args.server_ip
         client._port = args.server_port
-        client._client = args.client_ip
+        client._client_ip = args.client_ip
         client._client_port = args.client_port
-
-        # not to wait 1 minute until the adress is free
-        client._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
         return True
 
