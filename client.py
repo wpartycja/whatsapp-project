@@ -34,7 +34,7 @@ class client:
     _username = None
     _alias = None
     _date = None
-    _socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM) ## ??
+    _socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
 
     # ******************** METHODS *******************
     # *
@@ -61,10 +61,10 @@ class client:
         s.connect((client._server, client._port))
 
         # send data one by one
-        s.send(bytes("REGISTER/0", 'UTF-8'))
-        s.send(bytes(client._username + "/0", 'UTF-8'))
-        s.send(bytes(client._alias + "/0", 'UTF-8'))
-        s.send(bytes(date + "/0", 'UTF-8'))
+        s.send(bytes("REGISTER\0", 'UTF-8'))
+        s.send(bytes(client._username + "\0", 'UTF-8'))
+        s.send(bytes(client._alias + "\0", 'UTF-8'))
+        s.send(bytes(date + "\0", 'UTF-8'))
 
         s.settimeout(TIMEOUT)
         # receive response with set timeout from server and close connection
@@ -110,8 +110,8 @@ class client:
         s.connect((client._server, client._port))
 
         # send data - operation name + alias
-        s.send(bytes("UNREGISTER/0", 'UTF-8'))
-        s.send(bytes(client._alias + "/0", 'UTF-8'))
+        s.send(bytes("UNREGISTER\0", 'UTF-8'))
+        s.send(bytes(client._alias + "\0", 'UTF-8'))
 
         s.settimeout(TIMEOUT)
         # receive response with set timeout from server and close connection
@@ -153,9 +153,9 @@ class client:
         s.connect((client._server, client._port))
 
         # send data - operation name + alias
-        s.send(bytes("CONNECT/0", 'UTF-8'))
-        s.send(bytes(client._alias + "/0", 'UTF-8'))
-        s.send(bytes(str(client._client_port) + "/0", 'UTF-8'))
+        s.send(bytes("CONNECT\0", 'UTF-8'))
+        s.send(bytes(client._alias + "\0", 'UTF-8'))
+        s.send(bytes(str(client._client_port) + "\0", 'UTF-8'))
 
         s.settimeout(TIMEOUT)
         # receive response with set timeout from server and close connection
@@ -200,8 +200,8 @@ class client:
         s.connect((client._server, client._port))
 
         # send data - operation name + alias
-        s.send(bytes("DISCONNECT/0", 'UTF-8'))
-        s.send(bytes(client._alias + "/0", 'UTF-8'))
+        s.send(bytes("DISCONNECT\0", 'UTF-8'))
+        s.send(bytes(client._alias + "\0", 'UTF-8'))
 
         # receive response from server and close connection
         s.settimeout(TIMEOUT)
@@ -289,7 +289,7 @@ class client:
             if event == "SUBMIT":
                 if (values['_REGISTERNAME_'] == 'Text'
                    or values['_REGISTERNAME_'] == ''
-                   or len(values['_REGISTERNAME_']) > NAME_MAX_LENGTH - 2  # -2 beacuse of additional '/0'
+                   or len(values['_REGISTERNAME_']) > NAME_MAX_LENGTH - 2  # -2 beacuse of additional \0'
                    or values['_REGISTERALIAS_'] == 'Text'
                    or values['_REGISTERALIAS_'] == ''
                    or len(values['_REGISTERALIAS_']) > ALIAS_MAX_LENGTH - 2
