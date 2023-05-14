@@ -255,6 +255,26 @@ void deal_with_message(void *conn){
 
 		    pthread_mutex_unlock(&mutex_server);
             break;
+
+        // CONNECTED USERS.
+        case 4:
+            pthread_mutex_lock(&mutex_server);
+            printf("Start case 4 - CONNECTED USERS\n");
+
+            // Get username.
+            res = readLine(client_sd, username, MAX_SIZE); 
+            if(res == -1){
+                fprintf(stderr, "Error: (Server) Username could not be received.\n");
+                close(client_sd); 
+                pthread_exit(NULL);
+            } else if (res == 0){
+                fprintf(stderr, "Error: (Server) Username could not be read.\n");
+                close(client_sd); 
+                pthread_exit(NULL);
+            }
+
+            pthread_mutex_unlock(&mutex_server);
+            break;
         
         default:
             break;

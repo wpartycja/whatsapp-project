@@ -151,8 +151,6 @@ int connect_client(char *username, char *ip, char *port) {
     
 	// If the user exists, we proceed to check its status.
     while (fgets(line, MAX_SIZE, desc) != NULL) {
-		printf("Enter while\n");
-		printf("%s", line);
         linePosition = ftell(desc) - strlen(line);
 
         // Check if the line is 0 (disconnected).
@@ -185,6 +183,8 @@ int connect_client(char *username, char *ip, char *port) {
 	}
 	return 3;
 }
+
+// REMEMBER TO CLOSE FILE !!!!!!!!
     /*
     if (status == 0) {
         
@@ -232,35 +232,7 @@ int connect_client(char *username, char *ip, char *port) {
     return 0; // Successful connection.
 	*/
 
-// REMEMBER TO CLOSE FILE !!!!!!!!
-
-/*
-Cuando un cliente quiere dejar de recibir mensajes del servicio debe enviar el mensaje correspondiente 
-indicando el nombre de usuario. 
-
-Cuando el servidor reciba este mensaje realizara ́ lo siguiente:
-• Buscar el nombre de usuario indicado entre los usuarios registrados. 
-
-• Si el usuario existe y su estado es 
-“Conectado”:
-	– Borra los campos IP y puerto del usuario. 
-	– Se cambia su estado a “Desconectado”.
-
-• Si no existe, se env ́ıa una notificaci ́on de error al cliente.
-
-Cuando la operacio ́n finaliza con  ́exito, se debe mostrar por consola lo siguiente:
-	s> DISCONNECT <userName> OK
-donde <userName> indica el alias del usuario registrado.
-
-En caso de error, se mostrara ́:
-	s> DISCONNECT <userName> FAIL
-donde <userName> indica el alias del usuario registrado.*/
-
-/* 0 en caso de  ́exito, 
-3 en cualquier otro caso.*/
-
-
-// Server disconnects a client.
+// Disconnect a client.
 int disconnect_client(char *username) {
 	char line[MAX_SIZE];
     long int linePosition = -1;
@@ -312,12 +284,90 @@ int disconnect_client(char *username) {
 
             fflush(desc);
 
+			if((fclose(desc)) == NULL){
+				printf("s> DISCONNECT <%s> FAIL\n", username);
+    			printf("----------------------------------------\n");
+				return 3;
+			}
+
             printf("s> DISCONNECT <%s> OK\n", username);
             printf("----------------------------------------\n");
             return 0;
         }
     }
+	if((flose(desc)) == NULL){
+		printf("s> DISCONNECT <%s> FAIL\n", username);
+    	printf("----------------------------------------\n");
+		return 3;
+	}
 	printf("s> DISCONNECT <%s> FAIL\n", username);
     printf("----------------------------------------\n");
 	return 3;
 }
+
+// Auxiliary function to verify if user exists and is connected.
+int is_connected(char *username){
+	// Get path of the user.
+	const char* path = get_path(username);
+
+	// Search for the user.
+	if (access(path, F_OK) == 0) { // F_OK - test for the existence of the file
+		printf("User exists\n");
+		// If user exists, we have to check if it is connected.
+		FILE *desc;
+		char line[MAX_SIZE];
+
+		desc = fopen(path, "r+");
+    	if (desc == NULL) {
+        	// Error while opening the file.
+        	printf("s> CONNECTEDUSERS FAIL\n");
+    		printf("----------------------------------------\n");
+			return 3;
+    	}
+
+		// Verify if user is connected.
+		while (fgets(line, MAX_SIZE, desc) != NULL) {
+			// Check if the line is 1 (connected).
+			if(strcmp(line, "1\n") == 0){
+				// Close the file.
+				if((fclose(desc)) == NULL){
+					printf("s> CONNECTEDUSERS FAIL\n");
+    				printf("----------------------------------------\n");
+					return 3;
+				}
+
+				printf("s> CONNECTEDUSERS OK\n");
+    			printf("----------------------------------------\n");
+				return 0;
+			}
+		}
+	
+	} else{
+		// If user isn't registered.
+		printf("s> CONNECTEDUSERS FAIL\n");
+    	printf("----------------------------------------\n");
+		return 2;
+	}
+	printf("s> CONNECTEDUSERS FAIL\n");
+    printf("----------------------------------------\n");
+	return 3;
+}
+
+/*
+Cuando un cliente quiere saber qui ́enes est ́an conectados adem ́as de  ́el, 
+deber ́a enviar al servidor  un mensaje indicando simplemente la operacio ́n 
+
+Cuando el servidor recibe la operacio ́n hara ́ lo siguiente:
+
+• Verificar que el usuario esta ́ conectado. En caso contrario, devuelve un error de tipo 1. 
+
+• Si est ́a conectado, obtendr ́a todos los usuarios conectados en el servicio en ese momento. 
+• Enviara ́ al cliente un c ́odigo de tipo 0, y la cantidad de usuarios conectados al servidor. 
+• Enviara ́ los usuarios conectados al servicio.
+
+Cuando se realice con  ́exito la obtenci ́on de los usuarios conectados, se mostrar ́a en la consola del servidor el siguiente mensaje:
+	s> CONNECTEDUSERS OK
+En caso de fallo se mostrara ́:
+	s> CONNECTEDUSERS FAIL
+
+0 en caso de  ́exito, 1 si el usuario no est ́a conectado, 2 en cualquier otro caso.
