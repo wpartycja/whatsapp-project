@@ -30,7 +30,6 @@ int recvMessage(int socket, char *buffer, int len) {
     return totalRead;
 }
 
-// ---------------------------------------
 ssize_t readLine(int socket, char *buffer, size_t maxlen) {
     ssize_t numRead = 0;
     char ch = '\0';
@@ -51,7 +50,6 @@ ssize_t readLine(int socket, char *buffer, size_t maxlen) {
 
     return (numRead == 0) ? i : -1;
 }
-// ---------------------------------------
 
 int sendMessage(int socket, char * buffer, int len){
 
@@ -69,63 +67,3 @@ int sendMessage(int socket, char * buffer, int len){
 	else
 		return(0);	/* full length has been sent */
 }
-
-/*
-ssize_t readLine(int fd, void *buffer, size_t n){
-	ssize_t numRead;  // num of bytes fetched by last read() 
-	size_t totRead;	  // total bytes read so far 
-	char *buf;
-	char ch;
-	int flag = 0;
-
-	if (n <= 0 || buffer == NULL) { 
-		errno = EINVAL;
-		return -1; 
-	}
-
-	buf = buffer;
-	totRead = 0;
-	
-	for (;;) {
-		//printf("Entra for\n");
-		numRead = read(fd, &ch, 1);	// read a byte 
-		//printf("%ld\n", numRead);
-
-		if (ch == '\0'){
-			if(flag == 0){
-				printf("es 0 \n");
-				numRead = read(fd, &ch, 1);
-				flag = 1;
-			}
-		}
-
-    	if (numRead == -1) {
-			printf("numread -1\n");	
-            if (errno == EINTR)	// interrupted -> restart read() 
-        		continue;
-        	else
-				return -1;		// some other error 
-		} else if (numRead == 0) {	// EOF 
-			printf("numread 0\n");
-        	if (totRead == 0)	// no byres read; return 0 
-           		return 0;
-			else
-          		break;
-        } else {			// numRead must be 1 if we get here
-        	if (ch == '\n')
-           		break;
-        	if (ch == '\0'){
-				//printf("Es barra 0\n");
-          		break;
-			}
-            if (totRead < n - 1) {		// discard > (n-1) bytes 
-				totRead++;
-				*buf++ = ch; 
-			}
-		} 
-	}
-	
-	*buf = '\0';
-    
-	return totRead;
-} */
