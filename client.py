@@ -261,8 +261,6 @@ class client:
             response = 3
         s.close()
 
-        #  @TODO: add closing the thread
-
         # print response on the frontend
         match response:
             case 0:
@@ -270,6 +268,8 @@ class client:
                 client._socket.close()
                 client._disconnect.set()
                 client._connection_thread.join()
+                client._socket = None
+                client._client_port = None
                 window['_SERVER_'].print("s> DISCONNECT OK")
                 return client.RC.OK
             case 1:
