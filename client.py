@@ -396,7 +396,12 @@ class client:
                     continue
                 
                 window['_CLIENT_'].print('c> UNREGISTER ' + client._alias)
-                client.unregister(client._alias, window)
+                res = client.unregister(client._alias, window)
+                print(res)
+                if res == client.RC.OK:
+                    client._username = None
+                    client._alias = None
+                    client._date = None
 
             elif (event == 'CONNECT'):
                 if (client._alias is None):
