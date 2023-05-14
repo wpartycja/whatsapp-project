@@ -70,10 +70,9 @@ class client:
         # receive response with set timeout from server and close connection
         try:
             response = int(s.recv(1).decode())
-            sg.Popup('Waiting for server response...', title='WAITING', button_type=5, auto_close=True, auto_close_duration=5)
         except socket.timeout:
             # Handle a timeout exception
-            sg.Popup(f'Timeout occured, no data received within {TIMEOUT} sec', title='WAITING', button_type=5, auto_close=True, auto_close_duration=3)
+            sg.Popup(f'Timeout occured, no data received within {TIMEOUT} sec', title='TIMEOUT', button_type=5, auto_close=True, auto_close_duration=3)
             response = 2
         s.close()
 
@@ -118,10 +117,9 @@ class client:
         # receive response with set timeout from server and close connection
         try:
             response = int(s.recv(1).decode())
-            sg.Popup('Waiting for server response...', title='WAITING', button_type=5, auto_close=True, auto_close_duration=5)
         except socket.timeout:
             # Handle a timeout exception
-            sg.Popup(f'Timeout occured, no data received within {TIMEOUT} sec', title='WAITING', button_type=5, auto_close=True, auto_close_duration=3)
+            sg.Popup(f'Timeout occured, no data received within {TIMEOUT} sec', title='TIMEOUT', button_type=5, auto_close=True, auto_close_duration=3)
             response = 2
         s.close()
 
@@ -163,10 +161,9 @@ class client:
         # receive response with set timeout from server and close connection
         try:
             response = int(s.recv(1).decode())
-            sg.Popup('Waiting for server response...', title='WAITING', button_type=5, auto_close=True, auto_close_duration=5)
         except socket.timeout:
             # Handle a timeout exception
-            sg.Popup(f'Timeout occured, no data received within {TIMEOUT} sec', title='WAITING', button_type=5, auto_close=True, auto_close_duration=3)
+            sg.Popup(f'Timeout occured, no data received within {TIMEOUT} sec', title='TIMEOUT', button_type=5, auto_close=True, auto_close_duration=3)
             response = 3
         s.close()
 
@@ -211,10 +208,9 @@ class client:
         # receive response with set timeout from server and close connection
         try:
             response = int(s.recv(1).decode())
-            sg.Popup('Waiting for server response...', title='WAITING', button_type=5, auto_close=True, auto_close_duration=5)
         except socket.timeout:
             # Handle a timeout exception
-            sg.Popup(f'Timeout occured, no data received within {TIMEOUT} sec', title='WAITING', button_type=5, auto_close=True, auto_close_duration=3)
+            sg.Popup(f'Timeout occured, no data received within {TIMEOUT} sec', title='TIMEOUT', button_type=5, auto_close=True, auto_close_duration=3)
             response = 3
         s.close()
 
