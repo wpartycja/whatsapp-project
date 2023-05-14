@@ -1,5 +1,3 @@
-import subprocess
-import sys
 import PySimpleGUI as sg
 from enum import Enum
 import argparse
@@ -40,7 +38,7 @@ class client:
     # ****************** ATTRIBUTES ******************
     _server = None
     _port = -1
-    
+
     _quit = 0
 
     _username = None
@@ -219,7 +217,7 @@ class client:
         # print response on the frontend
         match response:
             case 0:
-                # if it's ok, we are starting the 
+                # if it's ok, we are starting the thread
                 client._connection_thread.start()
                 window['_SERVER_'].print("s> CONNECT OK")
                 return client.RC.OK
@@ -359,7 +357,8 @@ class client:
     def window_register():
         layout_register = [[sg.Text('Ful Name:'), sg.Input('Text', key='_REGISTERNAME_', do_not_clear=True, expand_x=True)],
                            [sg.Text('Alias:'), sg.Input('Text', key='_REGISTERALIAS_', do_not_clear=True, expand_x=True)],
-                           [sg.Text('Date of birth:'), sg.Input('', key='_REGISTERDATE_', do_not_clear=True, expand_x=True, disabled=True, use_readonly_for_disable=False),
+                           [sg.Text('Date of birth:'),
+                            sg.Input('', key='_REGISTERDATE_', do_not_clear=True, expand_x=True, disabled=True, use_readonly_for_disable=False),
                             sg.CalendarButton("Select Date", close_when_date_chosen=True, target="_REGISTERDATE_", format='%d-%m-%Y', size=(10, 1))],
                            [sg.Button('SUBMIT', button_color=('white', 'blue'))]
                            ]
@@ -367,7 +366,6 @@ class client:
         layout = [[sg.Column(layout_register, element_justification='center', expand_x=True, expand_y=True)]]
 
         window = sg.Window("REGISTER USER", layout, modal=True)
-        choice = None
 
         while True:
             event, values = window.read()
@@ -435,7 +433,7 @@ class client:
                     sg.Button('DISCONNECT', expand_x=True, expand_y=True),
                     sg.Button('CONNECTED USERS', expand_x=True, expand_y=True)],
                    [sg.Text('Dest:'), sg.Input('User', key='_INDEST_', do_not_clear=True, expand_x=True),
-                    sg.Text('Message:'), sg.Input('Text',key='_IN_', do_not_clear=True, expand_x=True),
+                    sg.Text('Message:'), sg.Input('Text', key='_IN_', do_not_clear=True, expand_x=True),
                     sg.Button('SEND', expand_x=True, expand_y=False)],
                    [sg.Text('Attached File:'), sg.In(key='_FILE_', do_not_clear=True, expand_x=True), sg.FileBrowse(),
                     sg.Button('SENDATTACH', expand_x=True, expand_y=False)],
@@ -459,7 +457,8 @@ class client:
             #   window['_CLIENT_'].print("c> No text inserted")
             #   continue
 
-            # if (client._alias is None or client._username is None or client._alias == 'Text' or client._username == 'Text' or client._date is None) and (event != 'REGISTER'):
+            # if (client._alias is None or client._username is None or client._alias == 'Text'
+            #     or client._username == 'Text' or client._date is None) and (event != 'REGISTER'):
             #     sg.Popup('NOT REGISTERED', title='ERROR', button_type=5, auto_close=True, auto_close_duration=1)
             #     continue
 
@@ -476,7 +475,7 @@ class client:
                 if (client._alias is None):
                     sg.Popup('NOT REGISTERED', title='ERROR', button_type=5, auto_close=True, auto_close_duration=1)
                     continue
-                
+
                 window['_CLIENT_'].print('c> UNREGISTER ' + client._alias)
                 res = client.unregister(client._alias, window)
                 print(res)
@@ -509,7 +508,7 @@ class client:
                 elif client._client_port is None:
                     sg.Popup('NOT CONNECTED', title='ERROR', button_type=5, auto_close=True, auto_close_duration=1)
                     continue
-                else: 
+                else:
                     window['_CLIENT_'].print('c> SEND ' + values['_INDEST_'] + " " + values['_IN_'])
 
                 if (values['_INDEST_'] == '' or values['_IN_'] == ''):
@@ -517,15 +516,15 @@ class client:
                 elif (values['_INDEST_'] == 'User' or values['_IN_'] == 'Text'):
                     window['_CLIENT_'].print("Syntax error. Values should be other than default ones")
                 elif (len(values['_IN_']) >= 255):
-                    window['_CLIENT_'].print("Syntax error. Message should be shorter than 255 signs")              
+                    window['_CLIENT_'].print("Syntax error. Message should be shorter than 255 signs")
                 else:
-                    client.send(values['_INDEST_'], values['_IN_'], window)    
+                    client.send(values['_INDEST_'], values['_IN_'], window)
 
             elif (event == 'SENDATTACH'):
 
                 window['_CLIENT_'].print('c> SENDATTACH ' + values['_INDEST_'] + " " + values['_IN_'] + " " + values['_FILE_'])
 
-                if (values['_INDEST_'] != '' and values['_IN_'] != '' and values['_FILE_'] != '') :
+                if (values['_INDEST_'] != '' and values['_IN_'] != '' and values['_FILE_'] != ''):
                     client.sendAttach(values['_INDEST_'], values['_IN_'], values['_FILE_'], window)
                 else:
                     window['_CLIENT_'].print("Syntax error. Insert <destUser> <message> <attachedFile>")
