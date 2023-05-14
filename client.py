@@ -48,7 +48,7 @@ class client:
 
     _socket = None
     _connection_thread = None
-    _disconnect = False
+    _disconnect = threading.Event()
 
     # ******************** METHODS *******************
     # *
@@ -164,14 +164,17 @@ class client:
         try:
             while True:
                 conn, addr = client._socket.accept()
+                if client._disconnect.is_set():
+                    break
                 print(f'Connected to client from host {addr[0]}, on port {addr[1]}')
                 while True:
-                    message = conn.recv(BUF_SIZE) # decode @TODO:  decode????
+                    message = conn.recv(BUF_SIZE)  # decode @TODO:  decode????
                     if not message:
                         break
                     print(f'Thread id: {threading.get_native_id()}, received message: {message.decode("utf-8")}')
         except socket.error:
-            print("Error in socket")
+            print("Error in socket - maybe socket is shutted down")
+            return
 
     @staticmethod
     def connect(user, window):
@@ -186,7 +189,7 @@ class client:
         client._client_port = client._socket.getsockname()[1]
         print(f'Client port is: {client._client_port}')
         # creating a thread but not starting it since we don't know if its a legal action without resposne from server
-        client._connection_thread = threading.Thread(target=client.start_connection)
+        client._connection_thread = threading.Thread(target=client.start_connection, daemon=True)
 
         # creating socket
         s = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
@@ -263,6 +266,10 @@ class client:
         # print response on the frontend
         match response:
             case 0:
+                client._socket.shutdown(socket.SHUT_RD)
+                client._socket.close()
+                client._disconnect.set()
+                client._connection_thread.join()
                 window['_SERVER_'].print("s> DISCONNECT OK")
                 return client.RC.OK
             case 1:
