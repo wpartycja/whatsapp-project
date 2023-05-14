@@ -24,6 +24,8 @@ BUF_SIZE = 256
 
 #  @TODO  size of message - block or send it multiple times to server if message is long?
 
+# @TODO demon???
+
 
 class client:
 
@@ -152,7 +154,7 @@ class client:
                 window['_SERVER_'].print("s> UNREGISTER FAIL")
                 return client.RC.ERROR
 
-    def start_connection():
+    def start_connection(window):
         client._socket.listen()
         print('TCP client is listening')
 
@@ -163,10 +165,15 @@ class client:
                     break
                 print(f'Connected to client from host {addr[0]}, on port {addr[1]}')
                 while True:
-                    message = conn.recv(BUF_SIZE)  # decode @TODO:  decode????
-                    if not message:
+                    data = conn.recv(13+ALIAS_MAX_LENGTH+4+BUF_SIZE)  # 13 for SEND_MESSAGE, 4 for id of message
+                    if len(data) == 0:
                         break
-                    print(f'Thread id: {threading.get_native_id()}, received message: {message.decode("utf-8")}')
+                    data_split = data.split(b'\0')
+                    if len(data_split) >= 4:
+                        operation, user, mess_id, message, e = data_split
+                        if operation.decode() == "SEND_MESSAGE":
+                            print(f'Thread id: {threading.get_native_id()}, received message: {operation} from {user}')
+                            window['_SERVER_'].print(f's> MESSAGE {mess_id.decode()} FROM {user.decode()}\n     {message.decode()}\n     END')
         except socket.error:
             print("Socket has been shutted down - user disconnected")
             return
@@ -191,7 +198,7 @@ class client:
         client._client_port = client._socket.getsockname()[1]
         print(f'Client port is: {client._client_port}')
         # creating a thread but not starting it since we don't know if its a legal action without resposne from server
-        client._connection_thread = threading.Thread(target=client.start_connection, daemon=True)
+        client._connection_thread = threading.Thread(target=client.start_connection, args=(window, ), daemon=True)
 
         # creating socket
         s = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
