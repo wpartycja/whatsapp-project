@@ -3,3 +3,4 @@ client_tcp.py
 *.o
 /server
 *.out
+client_countdown.py
