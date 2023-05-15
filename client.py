@@ -163,16 +163,28 @@ class client:
                 if client._disconnect.is_set():
                     break
                 print(f'Connected to client from host {addr[0]}, on port {addr[1]}')
+                operation = conn.recv(13)
+                user = conn.recv(ALIAS_MAX_LENGTH)
+                mess_id = ''
                 while True:
-                    data = conn.recv(13+ALIAS_MAX_LENGTH+4+BUF_SIZE)  # 13 for SEND_MESSAGE, 4 for id of message
-                    if len(data) == 0:
+                    byte = conn.recv(1)
+                    if byte == b'\0':
                         break
-                    data_split = data.split(b'\0')
-                    if len(data_split) >= 4:
-                        operation, user, mess_id, message, e = data_split
-                        if operation.decode() == "SEND_MESSAGE":
-                            print(f'Thread id: {threading.get_native_id()}, received message: {operation} from {user}')
-                            window['_SERVER_'].print(f's> MESSAGE {mess_id.decode()} FROM {user.decode()}\n     {message.decode()}\n     END')
+                    mess_id += byte.decode()
+                message = conn.recv(BUF_SIZE)
+
+
+                    # data = conn.recv(13+ALIAS_MAX_LENGTH+4+BUF_SIZE)  # 13 for SEND_MESSAGE, 4 for id of message
+                    # if len(data) == 0:
+                    #     break
+                    # data_split = data.split(b'\0')
+                    # if len(data_split) >= 4:
+                    #     operation, user, mess_id, message, e = data_split
+
+                if operation.decode() == "SEND_MESSAGE":
+                    print(f'Thread id: {threading.get_native_id()}, received message: {operation} from {user}')
+                    window['_SERVER_'].print(f's> MESSAGE {mess_id.decode()} FROM {user.decode()}\n     {message.decode()}\n     END')
+                    
         except socket.error:
             print("Socket has been shutted down - user disconnected")
             return
@@ -317,7 +329,12 @@ class client:
         try:
             response = int(s.recv(1).decode())
             if response == 0:
-                message_id = int(s.recv(3).decode())
+                message_id = ''
+                while True:
+                    byte = s.recv(1)
+                    if byte == b'\0':
+                        break
+                    message_id += byte.decode()
         except socket.timeout:
             # Handle a timeout exception
             sg.Popup(f'Timeout occured, no data received within {TIMEOUT} sec', title='TIMEOUT', button_type=5, auto_close=True, auto_close_duration=3)
