@@ -312,7 +312,7 @@ void deal_with_message(void *conn){
             if(res == 0){
                 /* This means the user is connected. We proceed to send the message.
                  * Now we call second service to send the message. */
-                res = send_part2(receiver);
+                //res = send_part2(receiver);
             }
 
             // This means the user is disconnected.
