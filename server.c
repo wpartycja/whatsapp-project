@@ -18,20 +18,7 @@
 #define DIR_NAME "Database"
 #define FILE_TYPE ".txt"
 
-/*clientes deberan registrarse con un nombre determinado en el sistema y a continuacion conectarse, 
-indicando para ello su IP y puerto. El servidor debe mantener una lista con todos los clientes 
-registrados, el nombre, estado y direccion de los mismos, ası como una lista de los mensajes 
-pendientes de entrega a cada cliente. Ademas se encargara de asociar un identificador a cada 
-mensaje recibido de un cliente*/
-
-/*El servidor debe ser capaz de gestionar varias conexiones simultaneamente (debe ser concurrente) 
-mediante el uso de multiples hilos (multithread). El servidor utilizara sockets TCP orientados a conexion*/
-
-// Conexion de un cliente
-// Desconexion de un cliente
-// Solicitud de un musuarios conectados 
-
-#define MAX_SIZE    256 // (?)
+#define MAX_SIZE    256 
 
 // Mutex & conditions to protect message copy.
 pthread_mutex_t mutex_connection = PTHREAD_MUTEX_INITIALIZER;
@@ -121,14 +108,10 @@ void deal_with_message(void *conn){
         number = 2;
     } else if (strcmp(operation, "DISCONNECT") == 0) {
         number = 3;
-    } else if (strcmp(operation, "SEND") == 0) {
-        number = 4;
     } else if (strcmp(operation, "SEND_MESSAGE") == 0) {
-        number = 5;
-    } else if (strcmp(operation, "SEND_MESS_ACK") == 0) {
-        number = 6;
+        number = 4;
     } else if (strcmp(operation, "CONNECTEDUSERS") == 0) {
-        number = 7;
+        number = 5;
     } 
 
     switch(number){
@@ -256,8 +239,12 @@ void deal_with_message(void *conn){
 		    pthread_mutex_unlock(&mutex_server);
             break;
 
-        // CONNECTED USERS.
+        // SEND MESSAGE.
         case 4:
+            break;
+
+        // CONNECTED USERS.
+        case 5:
             pthread_mutex_lock(&mutex_server);
             printf("Start case 4 - CONNECTED USERS\n");
 
@@ -273,6 +260,35 @@ void deal_with_message(void *conn){
                 pthread_exit(NULL);
             }
 
+            // Call the first service.
+            res = is_connected(username);
+
+            // Send response to client.
+            sprintf(buf, "%d", res); // Convert response to string.
+
+            // Send response to client.
+            if((sendMessage(client_sd, buf, strlen(buf) + 1)) == -1){ 
+                fprintf(stderr, "Error: (Server) response value could not be sent to the client.");
+                close(client_sd); 
+                pthread_exit(NULL);
+            }
+
+            // Verify if second service should be called. 
+            if(res == 0){
+                printf("\n");
+                res = connected_users(client_sd);
+
+                // Send response to client.
+                sprintf(buf, "%d", res); // Convert response to string.
+        
+                // Send response to client.
+                if((sendMessage(client_sd, buf, strlen(buf) + 1)) == -1){ 
+                    fprintf(stderr, "Error: (Server) response value could not be sent to the client.");
+                    close(client_sd); 
+                    pthread_exit(NULL);
+                }
+            }
+
             pthread_mutex_unlock(&mutex_server);
             break;
         
@@ -280,13 +296,16 @@ void deal_with_message(void *conn){
             break;
     }     
 
-    // Send response to client.
-    sprintf(buf, "%d", res); // Convert response to string.
-    // Send response to client.
-    if((sendMessage(client_sd, buf, strlen(buf) + 1)) == -1){ 
-        fprintf(stderr, "Error: (Server) response value could not be sent to the client.");
-        close(client_sd); 
-        pthread_exit(NULL);
+    if(number != 5){
+        // Send response to client.
+        sprintf(buf, "%d", res); // Convert response to string.
+        
+        // Send response to client.
+        if((sendMessage(client_sd, buf, strlen(buf) + 1)) == -1){ 
+            fprintf(stderr, "Error: (Server) response value could not be sent to the client.");
+            close(client_sd); 
+            pthread_exit(NULL);
+        }
     }
 
     // Close the connection with the client.

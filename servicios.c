@@ -13,6 +13,7 @@
 
 #include "servicios.h"
 #include "servicios_help.h"
+#include "lines.h"
 
 #define MAX_MSG_SIZE 1024
 
@@ -284,7 +285,7 @@ int disconnect_client(char *username) {
 
             fflush(desc);
 
-			if((fclose(desc)) == NULL){
+			if((fclose(desc)) != 0){
 				printf("s> DISCONNECT <%s> FAIL\n", username);
     			printf("----------------------------------------\n");
 				return 3;
@@ -295,7 +296,7 @@ int disconnect_client(char *username) {
             return 0;
         }
     }
-	if((flose(desc)) == NULL){
+	if((fclose(desc)) != 0){
 		printf("s> DISCONNECT <%s> FAIL\n", username);
     	printf("----------------------------------------\n");
 		return 3;
@@ -312,7 +313,6 @@ int is_connected(char *username){
 
 	// Search for the user.
 	if (access(path, F_OK) == 0) { // F_OK - test for the existence of the file
-		printf("User exists\n");
 		// If user exists, we have to check if it is connected.
 		FILE *desc;
 		char line[MAX_SIZE];
@@ -330,39 +330,146 @@ int is_connected(char *username){
 			// Check if the line is 1 (connected).
 			if(strcmp(line, "1\n") == 0){
 				// Close the file.
-				if((fclose(desc)) == NULL){
+				if((fclose(desc)) != 0){
 					printf("s> CONNECTEDUSERS FAIL\n");
     				printf("----------------------------------------\n");
 					return 3;
 				}
-
+				// User exists and is connected.
 				printf("s> CONNECTEDUSERS OK\n");
     			printf("----------------------------------------\n");
 				return 0;
+			} else if(strcmp(line, "0\n") == 0){
+				// User exists but isn't connected.
+				printf("User is NOT connected.\n");
+				printf("s> CONNECTEDUSERS FAIL\n");
+    			printf("----------------------------------------\n");
+				return 1;
 			}
 		}
-	
 	} else{
 		// If user isn't registered.
+		printf("User is NOT registered.\n");
 		printf("s> CONNECTEDUSERS FAIL\n");
     	printf("----------------------------------------\n");
 		return 2;
 	}
+	printf("Other error.\n");
 	printf("s> CONNECTEDUSERS FAIL\n");
     printf("----------------------------------------\n");
 	return 3;
 }
 
+// Send client connected users and number of connected users.
+int connected_users(int client_sd) {
+    DIR *dir;
+    struct dirent *entry;
+    char line[MAX_SIZE];
+    int count = 0;
+    char user[MAX_SIZE];
+	char newUser[MAX_SIZE];
+    int send;
+    char buf[MAX_SIZE];
+
+    // Open the directory.
+    dir = opendir(DIR_NAME);
+    if (dir == NULL) {
+		printf("Error opening directory\n");
+        printf("s> CONNECTEDUSERS FAIL\n");
+        printf("----------------------------------------\n");
+        return 3;
+    }
+
+    // Read the files one by one.
+    while ((entry = readdir(dir)) != NULL) {
+        // Ignore "." and ".." entries
+        if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
+            char filePath[MAX_SIZE * 2];  // Increase the buffer size
+
+            snprintf(filePath, sizeof(filePath), "%s/%s", DIR_NAME, entry->d_name);
+
+            // Open the user's file.
+            FILE *file = fopen(filePath, "r");
+            if (file == NULL) {
+				printf("Error opening file");
+                printf("s> CONNECTEDUSERS FAIL\n");
+                printf("----------------------------------------\n");
+                return 3;
+            }
+
+            // Read each line of the file searching for the status.
+            while (fgets(line, sizeof(line), file) != NULL) {
+				printf("%s", line);
+
+                // Check if the line equals 0.
+                if (strcmp(line, "0\n") == 0) {
+                    // This means the user is disconnected.
+                    continue;
+                }
+
+                // Check if the line equals 1.
+                if (strcmp(line, "1\n") == 0) {
+					printf("User is connected\n");
+                    // This means the user is connected.
+                    count++;
+
+                    // Send the username to the client.
+                    strncpy(user, entry->d_name, sizeof(user) - 1);
+					strncpy(newUser, user, strlen(user) - 4);
+                    newUser[sizeof(newUser) - 1] = '\0';
+
+					printf("----- user:\n");
+					printf("%s", newUser);
+					printf("\n");
+					printf("-----\n");
+
+                    send = sendMessage(client_sd, newUser, strlen(newUser));
+
+                    if (send == -1) {
+						printf("Error sending user\n");
+                        printf("s> CONNECTEDUSERS FAIL\n");
+                        printf("----------------------------------------\n");
+                        return 3;
+                    }
+                }
+            }
+
+            // Close the file.
+            if (fclose(file) != 0) {
+                printf("s> CONNECTEDUSERS FAIL\n");
+                printf("----------------------------------------\n");
+                return 3;
+            }
+        }
+    }
+
+    // Send the counter (number of connected users) to the client.
+    snprintf(buf, sizeof(buf), "%d", count);
+
+    send = sendMessage(client_sd, buf, strlen(buf));
+
+    if (send == -1) {
+        printf("s> CONNECTEDUSERS FAIL\n");
+        printf("----------------------------------------\n");
+        return 3;
+    }
+
+    // Close the directory.
+    if (closedir(dir) != 0) {
+        printf("s> CONNECTEDUSERS FAIL\n");
+        printf("----------------------------------------\n");
+        return 3;
+    }
+
+    return 0;
+}
+
 /*
-Cuando un cliente quiere saber qui ́enes est ́an conectados adem ́as de  ́el, 
-deber ́a enviar al servidor  un mensaje indicando simplemente la operacio ́n 
 
 Cuando el servidor recibe la operacio ́n hara ́ lo siguiente:
 
-• Verificar que el usuario esta ́ conectado. En caso contrario, devuelve un error de tipo 1. 
-
 • Si est ́a conectado, obtendr ́a todos los usuarios conectados en el servicio en ese momento. 
-• Enviara ́ al cliente un c ́odigo de tipo 0, y la cantidad de usuarios conectados al servidor. 
+• Enviara ́ al cliente la cantidad de usuarios conectados al servidor. 
 • Enviara ́ los usuarios conectados al servicio.
 
 Cuando se realice con  ́exito la obtenci ́on de los usuarios conectados, se mostrar ́a en la consola del servidor el siguiente mensaje:
@@ -371,3 +478,4 @@ En caso de fallo se mostrara ́:
 	s> CONNECTEDUSERS FAIL
 
 0 en caso de  ́exito, 1 si el usuario no est ́a conectado, 2 en cualquier otro caso.
+*/

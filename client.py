@@ -5,13 +5,13 @@ from datetime import datetime, timedelta
 import socket
 import threading
 
-SERVER_IP = 'localhost'
+SERVER_IP = '127.0.0.1'
 SERVER_PORT = 8080
 CLIENT_IP = ''
 
 NAME_MAX_LENGTH = 64
 ALIAS_MAX_LENGTH = 32
-TIMEOUT = 3
+TIMEOUT = 20
 BUF_SIZE = 256
 
 #  @TODO: broken pipe error handling?
@@ -194,13 +194,25 @@ class client:
                     break
                 print(f'Connected to client from host {addr[0]}, on port {addr[1]}')
                 while True:
-                    message = conn.recv(BUF_SIZE)  # decode @TODO:  decode????
-                    if not message:
+                    data = conn.recv(13+ALIAS_MAX_LENGTH+4+BUF_SIZE)  # 13 for SEND_MESSAGE, 4 for id of message
+                    if len(data) == 0:
                         break
-                    print(f'Thread id: {threading.get_native_id()}, received message: {message.decode("utf-8")}')
+                    data_split = data.split(b'\0')
+                    if len(data_split) >= 4:
+                        operation, user, mess_id, message, e = data_split
+                        if operation.decode() == "SEND_MESSAGE":
+                            print(f'Thread id: {threading.get_native_id()}, received message: {operation} from {user}')
+                            window['_SERVER_'].print(f's> MESSAGE {mess_id.decode()} FROM {user.decode()}\n     {message.decode()}\n     END')
         except socket.error:
-            print("Error in socket - maybe socket is shutted down")
+            print("Socket has been shutted down - user disconnected")
             return
+
+    # *
+    # * @param user - User name to connect to the system
+    # *
+    # * @return OK if successful
+    # * @return USER_ERROR if the user does not exist or if it is already connected
+    # * @return ERROR if another error occurred
 
     @staticmethod
     def connect(user, window):
@@ -380,7 +392,8 @@ class client:
         s.connect((client._server, client._port))
 
         # send data - operation name + alias
-        s.send(bytes("CONNECT\0", 'UTF-8'))
+        s.send(bytes("CONNECTEDUSERS\0", 'UTF-8'))
+        s.send(bytes(client._alias + "\0", 'UTF-8'))
 
         # receive response with set timeout from server and close connection
         s.settimeout(TIMEOUT)
