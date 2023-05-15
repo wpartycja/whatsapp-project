@@ -4,14 +4,15 @@ import argparse
 from datetime import datetime, timedelta
 import socket
 import threading
+import re
 
-SERVER_IP = 'localhost'
-SERVER_PORT = 8080
+SERVER_IP = '127.0.0.1'
+SERVER_PORT = 8082
 CLIENT_IP = ''
 
 NAME_MAX_LENGTH = 64
 ALIAS_MAX_LENGTH = 32
-TIMEOUT = 3
+TIMEOUT = 5
 BUF_SIZE = 256
 
 #  @TODO: broken pipe error handling?
@@ -39,7 +40,6 @@ class client:
     # ****************** ATTRIBUTES ******************
     _server = None
     _port = -1
-
     _quit = 0
 
     _username = None
@@ -362,31 +362,45 @@ class client:
         s.connect((client._server, client._port))
 
         # send data - operation name + alias
-        s.send(bytes("CONNECT\0", 'UTF-8'))
+        s.send(bytes("CONNECTEDUSERS\0", 'UTF-8'))
+        s.send(bytes(client._alias + "\0", "UTF-8"))
 
         # receive response with set timeout from server and close connection
         s.settimeout(TIMEOUT)
         try:
-            # recv() capacity is 131072, so we assume less than 3970 users - operation safe
-            max_size = s.getsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF)
-            response = s.recv(max_size)
-            data_split = response.split(b'\0')
-            if (int(data_split[0].decode()) != 0):
-                operation = int(data_split[0].decode())
-            elif len(data_split) >= 4:  # at least: operation_id, number of users, user, empty string
-                operation = int(data_split[0].decode())
-                n_users = data_split[-2].decode()
-                users = [user.decode() for user in data_split[1:-2]]
-            # in case of any other error
-            else:
-                print("Communication error")
-                operation = 2
+            users = []
+            n_users = None
+            operation = None
+            # if we have success and didn't received number of users yet
+            while n_users is None:
+                # if thats the first go through the loop we take operation
+                if operation is None:
+                    operation = int(s.recv(2).decode()[0])
+                    print(f'operation: {operation}')
+                    continue
+                # listening to every byte with every letter/sign
+                data = s.recv(ALIAS_MAX_LENGTH)
+                if len(data) == 0:
+                    break
+                print(f'data received: {data}')
+                decoded_data = data.decode("ISO-8859-1")
+                print(decoded_data)
+                print(type(decoded_data))
+                # end of sending alias of one user
+                if decoded_data[0].isdigit():
+                    n_users = len(users)
+                    print(n_users)
+                else:
+                    users.append(decoded_data)
         except socket.timeout:
             # Handle a timeout exception
             sg.Popup(f'Timeout occured, no data received within {TIMEOUT} sec', title='TIMEOUT', button_type=5, auto_close=True, auto_close_duration=3)
-            response = 3
+            operation = 2
         s.close()
 
+        if n_users is None:
+            operation = 2
+        print(users)
         # print response on the frontend
         match operation:
             case 0:
@@ -427,6 +441,8 @@ class client:
                    or len(values['_REGISTERNAME_']) > NAME_MAX_LENGTH - 1  # -2 beacuse of additional /0'
                    or values['_REGISTERALIAS_'] == 'Text'
                    or values['_REGISTERALIAS_'] == ''
+                   or values['_REGISTERALIAS_'].isdigit()
+                   or '\\' in values['_REGISTERALIAS_']
                    or len(values['_REGISTERALIAS_']) > ALIAS_MAX_LENGTH - 1
                    or values['_REGISTERDATE_'] == ''
                    or datetime.strptime(values['_REGISTERDATE_'], "%d-%m-%Y") > datetime.now() - timedelta(days=1)):
@@ -523,7 +539,6 @@ class client:
                 if (client._alias is None):
                     sg.Popup('NOT REGISTERED', title='ERROR', button_type=5, auto_close=True, auto_close_duration=1)
                     continue
-
                 window['_CLIENT_'].print('c> UNREGISTER ' + client._alias)
                 res = client.unregister(client._alias, window)
                 print(res)
@@ -578,6 +593,10 @@ class client:
                     window['_CLIENT_'].print("Syntax error. Insert <destUser> <message> <attachedFile>")
 
             elif (event == 'CONNECTED USERS'):
+                if (client._alias is None):
+                    sg.Popup('NOT REGISTERED', title='ERROR', button_type=5, auto_close=True, auto_close_duration=1)
+                    continue
+
                 window['_CLIENT_'].print("c> CONNECTEDUSERS")
                 client.connectedUsers(window)
 
