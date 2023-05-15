@@ -372,26 +372,21 @@ class client:
             n_users = None
             operation = None
             # if we have success and didn't received number of users yet
-            while n_users is None:
-                # if thats the first go through the loop we take operation
-                if operation is None:
-                    operation = int(s.recv(2).decode()[0])
-                    print(f'operation: {operation}')
-                    continue
+            # if thats the first go through the loop we take operation
+
+            n_users = int(s.recv(3).decode())
+            operation = int(s.recv(2).decode()[0])
+            print(f'operation: {operation}')
+            for _ in range(n_users):
                 # listening to every byte with every letter/sign
                 data = s.recv(ALIAS_MAX_LENGTH)
                 if len(data) == 0:
+                    print("Did nt recevied delacerd number of users form server")
                     break
                 print(f'data received: {data}')
                 decoded_data = data.decode("ISO-8859-1")
                 print(decoded_data)
-                print(type(decoded_data))
-                # end of sending alias of one user
-                if decoded_data[0].isdigit():
-                    n_users = len(users)
-                    print(n_users)
-                else:
-                    users.append(decoded_data)
+                users.append(decoded_data)
         except socket.timeout:
             # Handle a timeout exception
             sg.Popup(f'Timeout occured, no data received within {TIMEOUT} sec', title='TIMEOUT', button_type=5, auto_close=True, auto_close_duration=3)
