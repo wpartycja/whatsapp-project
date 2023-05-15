@@ -374,7 +374,13 @@ class client:
             # if we have success and didn't received number of users yet
             # if thats the first go through the loop we take operation
 
-            n_users = int(s.recv(3).decode())
+            n_users = ''
+            while True:
+                byte = s.recv(1)
+                if byte == b'\0':
+                    break
+                n_users += byte.decode()
+            n_users = int(n_users)
             operation = int(s.recv(2).decode()[0])
             print(f'operation: {operation}')
             for _ in range(n_users):
