@@ -416,7 +416,6 @@ int connected_users(int client_sd) {
                     // Send the username to the client.
                     strncpy(user, entry->d_name, sizeof(user) - 1);
 					strncpy(newUser, user, strlen(user) - 4);
-                    newUser[sizeof(newUser) - 1] = '\0';
 
 					printf("----- user:\n");
 					printf("%s", newUser);
