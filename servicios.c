@@ -371,7 +371,7 @@ int connected_users(int client_sd) {
     char user[MAX_SIZE];
 	char newUser[MAX_SIZE];
     int send;
-    char buf[MAX_SIZE];
+    //char buf[MAX_SIZE];
 
     // Open the directory.
     dir = opendir(DIR_NAME);
@@ -413,7 +413,7 @@ int connected_users(int client_sd) {
                 if (strcmp(line, "1\n") == 0) {
 					printf("User is connected\n");
                     // This means the user is connected.
-                    count++;
+                    //count++;
 
                     // Send the username to the client.
                     strncpy(user, entry->d_name, sizeof(user) - 1);
@@ -488,7 +488,7 @@ int send_message(int client_sd, char *username, char *receiver, char *mssg){
 	const char* path1 = get_path(username); // Sender.
 	const char* path2 = get_path(username);	// Receiver.
 	char line[MAX_SIZE];
-	char sentence = "Lista de mensajes:\n";
+	char *sentence = "Lista de mensajes:\n";
 
 	// First verify if sender exists.
 	if (access(path1, F_OK) == 0) { // F_OK - test for the existence of the file
@@ -504,9 +504,11 @@ int send_message(int client_sd, char *username, char *receiver, char *mssg){
                 return 3;
             }
 			// Look for line "Lista de mensajes:"
-			while (fgets(line, MAX_SIZE, desc) != NULL) {
+			while (fgets(line, MAX_SIZE, file) != NULL) {
 				// Check if the line is 1 (connected).
 				if(strcmp(line, sentence) == 0){
+					fgets(line, MAX_SIZE, file);
+					printf("%s", line);
 				}
 			}
 
@@ -516,7 +518,9 @@ int send_message(int client_sd, char *username, char *receiver, char *mssg){
         printf("----------------------------------------\n");
 		return 1;
 	}
-
+	printf("s> SEND FAIL\n");
+    printf("----------------------------------------\n");
+    return 3;
 }
 
 /*int send_message(int client_sd, char *username, char *receiver, char *mssg){
@@ -529,9 +533,9 @@ int send_message(int client_sd, char *username, char *receiver, char *mssg){
 	if (access(path1, F_OK) == 0) { // F_OK - test for the existence of the file
 		// If sender exists, we check if receiver exists.
 		if (access(path2, F_OK) == 0) { 
-			/* Both users exist. We store the message on the queue of the receiver.
-			 * Message contains: ID Sender Message.	First we need to retrieve the
-			 * ID to know which ID to assign to the new message*/ /*
+			// Both users exist. We store the message on the queue of the receiver.
+			 // Message contains: ID Sender Message.	First we need to retrieve the
+			 //ID to know which ID to assign to the new message 
 			FILE *file = fopen(path2, "r");
 			if (file == NULL) {
                 printf("s> SEND FAIL\n");
