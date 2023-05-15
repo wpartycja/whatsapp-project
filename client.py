@@ -375,8 +375,8 @@ class client:
                 operation = int(data_split[0].decode())
             elif len(data_split) >= 4:  # at least: operation_id, number of users, user, empty string
                 operation = int(data_split[0].decode())
-                n_users = data_split[1].decode()
-                users = [user.decode() for user in data_split[2:-1]]
+                n_users = data_split[-2].decode()
+                users = [user.decode() for user in data_split[1:-2]]
             # in case of any other error
             else:
                 print("Communication error")
