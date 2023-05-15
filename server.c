@@ -20,6 +20,8 @@
 
 #define MAX_SIZE    256 
 
+int connectedUsers = 0;
+
 // Mutex & conditions to protect message copy.
 pthread_mutex_t mutex_connection = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutex_server = PTHREAD_MUTEX_INITIALIZER;
@@ -83,6 +85,9 @@ void deal_with_message(void *conn){
 	char username[MAX_SIZE];   
 	char birthdate[MAX_SIZE];   //Format DD/MM/AAAA.
     char port[MAX_SIZE];
+    //schar mssgId[MAX_SIZE];
+    char mssg[MAX_SIZE];
+    char receiver[MAX_SIZE];
 	//int status = 0;
     //char ip[32];
 	//int port;
@@ -108,10 +113,12 @@ void deal_with_message(void *conn){
         number = 2;
     } else if (strcmp(operation, "DISCONNECT") == 0) {
         number = 3;
-    } else if (strcmp(operation, "SEND_MESSAGE") == 0) {
+    } else if (strcmp(operation, "SEND") == 0) {
         number = 4;
-    } else if (strcmp(operation, "CONNECTEDUSERS") == 0) {
+    } else if (strcmp(operation, "SEND_MESSAGE") == 0) {
         number = 5;
+    } else if (strcmp(operation, "CONNECTEDUSERS") == 0) {
+        number = 6;
     } 
 
     switch(number){
@@ -163,8 +170,6 @@ void deal_with_message(void *conn){
         // UNREGISTER CLIENT
 	    case 1: 
             pthread_mutex_lock(&mutex_server);
-            printf("Start case 1\n");
-
             // Get username.
             res = readLine(client_sd, username, MAX_SIZE); 
             if(res == -1){
@@ -213,6 +218,10 @@ void deal_with_message(void *conn){
             // Call the service. 
             res = connect_client(username, ip, port);
 
+            if(res == 0){
+                connectedUsers++;
+            }
+
 		    pthread_mutex_unlock(&mutex_server);
             break;
         
@@ -236,15 +245,88 @@ void deal_with_message(void *conn){
             // Call the service. 
             res = disconnect_client(username);
 
+            if(res == 0){
+                connectedUsers--;
+            }
+
 		    pthread_mutex_unlock(&mutex_server);
             break;
 
-        // SEND MESSAGE.
+        // SEND.
         case 4:
+            pthread_mutex_lock(&mutex_server);
+            // Get username that sends the mesage.
+            res = readLine(client_sd, username, MAX_SIZE); 
+            if(res == -1){
+                fprintf(stderr, "Error: (Server) Username of sender could not be received.\n");
+                close(client_sd); 
+                pthread_exit(NULL);
+            } else if (res == 0){
+                fprintf(stderr, "Error: (Server) Username of sender could not be read.\n");
+                close(client_sd); 
+                pthread_exit(NULL);
+            }
+
+            // Get username that will receive the message.
+            res = readLine(client_sd, receiver, MAX_SIZE); 
+            if(res == -1){
+                fprintf(stderr, "Error: (Server) Username of receiver could not be read.\n");
+                close(client_sd); 
+                pthread_exit(NULL);
+            } else if (res == 0){
+                fprintf(stderr, "Error: (Server) Username of sender could not be read.\n");
+                close(client_sd); 
+                pthread_exit(NULL);
+            }
+
+            // Get message.
+            res = readLine(client_sd, mssg, MAX_SIZE); 
+            if(res == -1){
+                fprintf(stderr, "Error: (Server) Message could not be received.\n");
+                close(client_sd); 
+                pthread_exit(NULL);
+            } else if (res == 0){
+                fprintf(stderr, "Error: (Server) Message could not be read.\n");
+                close(client_sd); 
+                pthread_exit(NULL);
+            }
+
+            // Call service.
+            res = send_message(client_sd, username, receiver, mssg);
+
+            if(res != 0){
+                // Send response to client.
+                sprintf(buf, "%d", res); // Convert response to string.
+        
+                // Send response to client.
+                if((sendMessage(client_sd, buf, strlen(buf) + 1)) == -1){ 
+                    fprintf(stderr, "Error: (Server) response value could not be sent to the client.");
+                    close(client_sd); 
+                    pthread_exit(NULL);
+                }
+            }
+
+            // First check if the user is connected.
+            res = is_connected(receiver);
+
+            if(res == 0){
+                /* This means the user is connected. We proceed to send the message.
+                 * Now we call second service to send the message. */
+                res = send_part2(receiver);
+            }
+
+            // This means the user is disconnected.
+
+
+            pthread_mutex_unlock(&mutex_server);
+            break;
+
+        // SEND MESSAGE.
+        case 5:
             break;
 
         // CONNECTED USERS.
-        case 5:
+        case 6:
             pthread_mutex_lock(&mutex_server);
             printf("Start case 4 - CONNECTED USERS\n");
 
@@ -256,6 +338,15 @@ void deal_with_message(void *conn){
                 pthread_exit(NULL);
             } else if (res == 0){
                 fprintf(stderr, "Error: (Server) Username could not be read.\n");
+                close(client_sd); 
+                pthread_exit(NULL);
+            }
+
+            // Send number of connected users to client.
+            sprintf(buf, "%d", connectedUsers); // Convert response to string.
+
+            if((sendMessage(client_sd, buf, strlen(buf) + 1)) == -1){ 
+                fprintf(stderr, "Error: (Server) response value could not be sent to the client.");
                 close(client_sd); 
                 pthread_exit(NULL);
             }
@@ -296,7 +387,7 @@ void deal_with_message(void *conn){
             break;
     }     
 
-    if(number != 5){
+    if(number != 6 && number != 4){
         // Send response to client.
         sprintf(buf, "%d", res); // Convert response to string.
         
@@ -309,7 +400,7 @@ void deal_with_message(void *conn){
     }
 
     // Close the connection with the client.
-    printf("Closing connection with client.\n");
+    //printf("Closing connection with client.\n");
     close(client_sd); 
     pthread_exit(NULL);
 }

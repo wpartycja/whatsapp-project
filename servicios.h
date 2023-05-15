@@ -7,6 +7,7 @@ int connect_client(char *username, char *ip, char *port);
 int disconnect_client(char *username);
 int is_connected(char *username);
 int connected_users(int client_sd);
+int send_message(int client_sd, char *username, char *receiver, char *mssg);
 
 
 #endif
