@@ -393,7 +393,6 @@ class client:
 
         # send data - operation name + alias
         s.send(bytes("CONNECTEDUSERS\0", 'UTF-8'))
-        s.send(bytes(client._alias + "\0", 'UTF-8'))
 
         # receive response with set timeout from server and close connection
         s.settimeout(TIMEOUT)
