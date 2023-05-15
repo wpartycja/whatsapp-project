@@ -11,7 +11,7 @@ CLIENT_IP = ''
 
 NAME_MAX_LENGTH = 64
 ALIAS_MAX_LENGTH = 32
-TIMEOUT = 20
+TIMEOUT = 5
 BUF_SIZE = 256
 
 #  @TODO: broken pipe error handling?
