@@ -22,3 +22,8 @@ const char* get_path(const char* username){
 	return path_ptr;
 }
 
+void clean_char_array(char arr[], int size) {
+    for (int i = 0; i < size; i++) {
+        arr[i] = '\0';
+    }
+}

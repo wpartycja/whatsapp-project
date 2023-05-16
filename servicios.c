@@ -386,6 +386,9 @@ int connected_users(int client_sd) {
 
                     send = sendMessage(client_sd, newUser, strlen(newUser));
 
+					clean_char_array(user, strlen(user));
+					clean_char_array(newUser, strlen(newUser));
+
                     if (send == -1) {
 						printf("Error sending user\n");
                         printf("s> CONNECTEDUSERS FAIL\n");
