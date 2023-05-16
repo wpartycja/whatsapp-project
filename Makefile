@@ -1,6 +1,6 @@
 BIN_FILES  =  server 
 
-CC = gcc
+CC = gcc-11
 
 CPPFLAGS = -I$(INSTALL_PATH)/include -Wall
 
