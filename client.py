@@ -284,6 +284,7 @@ class client:
         # print response on the frontend
         match response:
             case 0:
+                client._socket.shutdown(socket.SHUT_RD)
                 client._socket.close()
                 client._disconnect.set()
                 client._connection_thread.join()
