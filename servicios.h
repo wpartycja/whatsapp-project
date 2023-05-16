@@ -8,6 +8,6 @@ int disconnect_client(char *username);
 int is_connected(char *username);
 int connected_users(int client_sd);
 int send_message(int client_sd, char *username, char *receiver, char *mssg);
-
+int send_aux(int client_sd, char *username, char *receiver, char *mssg, char *id, char *ip, char *port);
 
 #endif
