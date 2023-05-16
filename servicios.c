@@ -1,4 +1,8 @@
 #include <mqueue.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -424,7 +428,7 @@ int connected_users(int client_sd) {
                     // Send the username to the client.
                     strncpy(user, entry->d_name, sizeof(user) - 1);
 					strncpy(newUser, user, strlen(user) - 4);
-                    newUser[sizeof(newUser) - 1] = '\0';
+                    //newUser[sizeof(newUser) - 1] = '\0';
 
 					printf("----- user:\n");
 					printf("%s", newUser);
@@ -614,13 +618,42 @@ int send_message(int client_sd, char *username, char *receiver, char *mssg){
 			// We know receiver exists, we need to check if it is connected.
 			if(strcmp(status, "1\n") == 0){
 				// Send message to ip and port.
-				//int r = send_aux(client_sd, username, receiver, mssg, id);
-				int r = 0;
+				int r = send_aux(client_sd, username, receiver, mssg, id, strIP, strPort);
 				if(r == 3){
 					printf("s> SEND FAIL\n");
     				printf("----------------------------------------\n");
     				return 3;
 				}
+
+				// Message was sent successfully, we need to delete it from the queue.
+				// Open the file in read mode
+    			FILE *file3 = fopen("file.txt", "r");
+    			if (file == NULL) {
+        			printf("s> SEND FAIL\n");
+    				printf("----------------------------------------\n");
+    				return 3;
+    			}
+
+    			// Create a temporary file to write the modified contents
+    			FILE *temp = fopen("temp.txt", "w");
+    			if (temp == NULL) {
+        			printf("s> SEND FAIL\n");
+    				printf("----------------------------------------\n");
+    				return 3;
+    			}
+
+				 // Read and write lines from the original file to the temporary file.
+    			char tempLine[MAX_SIZE];
+    			char previousLine[MAX_SIZE] = "";
+    			while (fgets(tempLine, sizeof(tempLine), file3) != NULL) {
+       	 			if (previousLine[0] != '\0') {
+            			// Write the previous line to the temporary file
+            			fputs(previousLine, temp);
+        			}
+        			strcpy(previousLine, tempLine);
+    			}
+
+
 
 				// Send message to user that operation was successful.
 				printf("s> SEND MESSAGE <id> OK\n");
@@ -644,7 +677,7 @@ int send_message(int client_sd, char *username, char *receiver, char *mssg){
 }
 
 // Auxiliary function to send the message to the user.
-int send_aux(int client_sd, char *username, char *receiver, char *mssg, int id, char *ip, char *port){
+int send_aux(int client_sd, char *username, char *receiver, char *mssg, char *id, char *ip, char *port){
 	// Get the IP from the environment variable.
 	char *ip_as_string = ip; 
     if (NULL == ip_as_string) {
@@ -654,24 +687,32 @@ int send_aux(int client_sd, char *username, char *receiver, char *mssg, int id, 
     	return 3;
     }
 
-    struct hostent *host =  gethostbyname(ip_as_string); // Get the host from the IP.
+	// Get the host from the IP.
+    struct hostent *host =  gethostbyname(ip_as_string); 
     if (NULL == host) {
         // Check if the host was obtained.
-        perror("Error");
-        return -1;
+        printf("s> SEND FAIL\n");
+    	printf("----------------------------------------\n");
+    	return 3;
     }
-    char * ip_as_addr = inet_ntoa (*(struct in_addr*)host->h_addr); // Get the IP as an address.
 
-    char *port_as_string = getenv("PORT_TUPLAS"); // Get the port from the environment variable.
+	// Get the IP as an address.
+    char * ip_as_addr = inet_ntoa (*(struct in_addr*)host->h_addr); 
+
+	// Get the port.
+    char *port_as_string = port; 
     if (NULL == port_as_string) {
         // Check if the port was obtained.
-        perror("Error: No está establecida la variable de entorno puerto.");
-        return -1;
+       	printf("s> SEND FAIL\n");
+    	printf("----------------------------------------\n");
+    	return 3;
     }
 
-    int port_as_int = atoi(port_as_string); // Get the port as an integer.
+	// Get the port as an integer.
+    int port_as_int = atoi(port_as_string); 
 
-    struct sockaddr_in server_address = { // Create the server address.
+	// Create the server address.
+    struct sockaddr_in server_address = { 
             .sin_family = AF_INET, 
             .sin_addr.s_addr = inet_addr(ip_as_addr),  
             .sin_port = htons(port_as_int)  
@@ -681,33 +722,54 @@ int send_aux(int client_sd, char *username, char *receiver, char *mssg, int id, 
     int socket_fd = socket(AF_INET, SOCK_STREAM, 0); 
     if (socket_fd < 0) {
         // Check if the socket was created.
-        perror("error creating socket");
-        return 1;
+        printf("s> SEND FAIL\n");
+    	printf("----------------------------------------\n");
+    	return 3;
     }
 
     // Connect to server.
     int connect_result = connect(socket_fd, (const struct sockaddr *) &server_address, sizeof(server_address)); 
     // Check if the connection was successful.
     if (connect_result < 0) {
-        perror("error connecting to server");
+        printf("s> SEND FAIL\n");
+    	printf("----------------------------------------\n");
+    	return 3;
     }
 
-    // Send the request to the server.
-    char req = 0;
-    sendMessage(socket_fd, (char *)&req, 1); 
+	// Send the request to the server.
+	char *operation = "SEND_MESSAGE";
+    sendMessage(socket_fd, operation, strlen(operation) + 1); 
 
-    // Response from the server.
-    if (readLine(socket_fd, buf, MAX_SIZE) < 0) { 
-        // Check if the response was successful.
-        fprintf(stderr, "Error: Problem while waiting for response from the server.\n");
-        return -1;
+	char response[MAX_SIZE];
+	// We wait for the acknowledgement message.
+	if(recvMessage(client_sd, (char *) &response, MAX_SIZE) == -1){ 
+        printf("s> SEND FAIL\n");
+    	printf("----------------------------------------\n");
+    	return 3;
     }
+
+	// Send username of sender.
+	sendMessage(socket_fd, username, strlen(username) + 1); 
+
+	// Send id of the message.
+	sendMessage(socket_fd, id, strlen(id) + 1); 
+
+	// Send message.
+	sendMessage(socket_fd, mssg, strlen(mssg) + 1); 
+
+	// Wait for id.
+	if(recvMessage(client_sd, (char *) &response, MAX_SIZE) == -1){ 
+        printf("s> SEND FAIL\n");
+    	printf("----------------------------------------\n");
+    	return 3;
+    }
+
+	// Display message.
+	printf("s> SEND MESSAGE <%s> FROM <%s> TO <%s>\n", id, username, receiver);
+    printf("----------------------------------------\n");
 
     // Closing the connection.
     close(socket_fd);
-
-    // Result of the operation.
-    return atoi(buf);
 
 	return 0;
 }
