@@ -416,7 +416,7 @@ int connected_users(int client_sd) {
                 // Check if the line equals 0.
                 if (strcmp(line, "0\n") == 0) {
                     // This means the user is disconnected.
-                    continue;
+                    break;
                 }
 
                 // Check if the line equals 1.
@@ -428,7 +428,7 @@ int connected_users(int client_sd) {
                     // Send the username to the client.
                     strncpy(user, entry->d_name, sizeof(user) - 1);
 					strncpy(newUser, user, strlen(user) - 4);
-                    //newUser[sizeof(newUser) - 1] = '\0';
+                    // newUser[sizeof(newUser) - 1] = '\0';
 
 					printf("----- user:\n");
 					printf("%s", newUser);
@@ -443,6 +443,8 @@ int connected_users(int client_sd) {
                         printf("----------------------------------------\n");
                         return 3;
                     }
+					
+					break;
                 }
             }
 
