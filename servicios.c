@@ -193,9 +193,10 @@ int connect_client(char *username, char *ip, char *port) {
 			return 0;
 		}
 
+		fclose(desc);
+
 		// Check if the line is 0 (disconnected).
 		if(strcmp(line, "1\n") == 0){
-			//lineFound = 1;
 			printf("s> CONNECT <%s> OK\n", username);
 			return 2;
 		}
@@ -422,13 +423,10 @@ int connected_users(int client_sd) {
                 // Check if the line equals 1.
                 if (strcmp(line, "1\n") == 0) {
 					printf("User is connected\n");
-                    // This means the user is connected.
-                    //count++;
 
                     // Send the username to the client.
                     strncpy(user, entry->d_name, sizeof(user) - 1);
 					strncpy(newUser, user, strlen(user) - 4);
-                    //newUser[sizeof(newUser) - 1] = '\0';
 
 					printf("----- user:\n");
 					printf("%s", newUser);
@@ -455,17 +453,6 @@ int connected_users(int client_sd) {
         }
     }
 
-    // Send the counter (number of connected users) to the client.
-    //snprintf(buf, sizeof(buf), "%d", count);
-
-    //send = sendMessage(client_sd, buf, strlen(buf));
-
-    //if (send == -1) {
-    //    printf("s> CONNECTEDUSERS FAIL\n");
-    //    printf("----------------------------------------\n");
-    //    return 3;
-    //}
-
     // Close the directory.
     if (closedir(dir) != 0) {
         printf("s> CONNECTEDUSERS FAIL\n");
@@ -475,24 +462,6 @@ int connected_users(int client_sd) {
 
     return 0;
 }
-
-/*
-
-Cuando el servidor recibe la operacio ́n hara ́ lo siguiente:
-
-• Si est ́a conectado, obtendr ́a todos los usuarios conectados en el servicio en ese momento. 
-• Enviara ́ al cliente la cantidad de usuarios conectados al servidor. 
-• Enviara ́ los usuarios conectados al servicio.
-
-Cuando se realice con  ́exito la obtenci ́on de los usuarios conectados, se mostrar ́a en la consola del servidor el siguiente mensaje:
-	s> CONNECTEDUSERS OK
-En caso de fallo se mostrara ́:
-	s> CONNECTEDUSERS FAIL
-
-0 en caso de  ́exito, 1 si el usuario no est ́a conectado, 2 en cualquier otro caso.
-*/
-
-// ----------------------------
 
 // Send message between users.
 int send_message(int client_sd, char *username, char *receiver, char *mssg){
@@ -627,7 +596,7 @@ int send_message(int client_sd, char *username, char *receiver, char *mssg){
 
 				// Message was sent successfully, we need to delete it from the queue.
 				// Open the file in read mode
-    			FILE *file3 = fopen("file.txt", "r");
+    			FILE *file3 = fopen(path2, "r");
     			if (file == NULL) {
         			printf("s> SEND FAIL\n");
     				printf("----------------------------------------\n");
@@ -635,7 +604,8 @@ int send_message(int client_sd, char *username, char *receiver, char *mssg){
     			}
 
     			// Create a temporary file to write the modified contents
-    			FILE *temp = fopen("temp.txt", "w");
+				const char* path3 = get_path("temp");
+    			FILE *temp = fopen(path3, "w");
     			if (temp == NULL) {
         			printf("s> SEND FAIL\n");
     				printf("----------------------------------------\n");
@@ -653,7 +623,32 @@ int send_message(int client_sd, char *username, char *receiver, char *mssg){
         			strcpy(previousLine, tempLine);
     			}
 
+				// Close the original file and temporary file.
+				if(fclose(file3) != 0){
+					printf("s> SEND FAIL\n");
+    				printf("----------------------------------------\n");
+    				return 3;
+				}
 
+				if(fclose(temp) != 0){
+					printf("s> SEND FAIL\n");
+    				printf("----------------------------------------\n");
+    				return 3;
+				}
+
+				// Remove the original file
+    			if (remove(path2) != 0) {
+        			printf("s> SEND FAIL\n");
+    				printf("----------------------------------------\n");
+    				return 3;
+    			}
+
+				// Rename the temporary file to the original file name
+    			if (rename(path3, path2) != 0) {
+        			printf("s> SEND FAIL\n");
+    				printf("----------------------------------------\n");
+    				return 3;
+    			}
 
 				// Send message to user that operation was successful.
 				printf("s> SEND MESSAGE <id> OK\n");
@@ -756,13 +751,6 @@ int send_aux(int client_sd, char *username, char *receiver, char *mssg, char *id
 
 	// Send message.
 	sendMessage(socket_fd, mssg, strlen(mssg) + 1); 
-
-	// Wait for id.
-	if(recvMessage(client_sd, (char *) &response, MAX_SIZE) == -1){ 
-        printf("s> SEND FAIL\n");
-    	printf("----------------------------------------\n");
-    	return 3;
-    }
 
 	// Display message.
 	printf("s> SEND MESSAGE <%s> FROM <%s> TO <%s>\n", id, username, receiver);
