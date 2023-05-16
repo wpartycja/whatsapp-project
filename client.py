@@ -155,6 +155,7 @@ class client:
 
     def start_connection(window):
         client._socket.listen()
+        client._socket.setblocking(True)
         print('TCP client is listening')
 
         try:
@@ -170,14 +171,13 @@ class client:
                 print(operation.decode())
 
                 # get message id
-                mess_id = conn.recv(2)
+                mess_id = conn.recv(4)
                 print(mess_id.decode())
 
                 # receive message
                 message = conn.recv(BUF_SIZE)
                 print(message.decode())
                 
-
                 print(f'Thread id: {threading.get_native_id()}, received message: {operation} from {user}')
                 window['_SERVER_'].print(f's> MESSAGE {mess_id.decode()} FROM {user.decode()}\n     {message.decode()}\n     END')
                     
