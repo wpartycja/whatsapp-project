@@ -405,7 +405,7 @@ class client:
                 # listening to every byte with every letter/sign
                 data = s.recv(ALIAS_MAX_LENGTH)
                 if len(data) == 0:
-                    print("Did nt recevied delacerd number of users form server")
+                    print("Didn't recevied delacerd number of users form server")
                     break
                 print(f'data received: {data}')
                 decoded_data = data.decode("ISO-8859-1")

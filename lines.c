@@ -38,7 +38,6 @@ ssize_t readLine(int socket, char *buffer, size_t maxlen) {
     size_t i = 0;
 
     while ((numRead = recvMessage(socket, &ch, 1)) == 1) {
-        printf("Receiving: %c\n", ch);
         if (ch == '\0') {
             buffer[i++] = '\0';
             return i - 1; // return number of bytes read, excluding null terminator
