@@ -644,7 +644,70 @@ int send_message(int client_sd, char *username, char *receiver, char *mssg){
 }
 
 // Auxiliary function to send the message to the user.
-//int send_aux(client_sd, username, receiver, mssg, id){
+int send_aux(int client_sd, char *username, char *receiver, char *mssg, int id, char *ip, char *port){
+	// Get the IP from the environment variable.
+	char *ip_as_string = ip; 
+    if (NULL == ip_as_string) {
+        // Check if the IP was obtained.
+        printf("s> SEND FAIL\n");
+    	printf("----------------------------------------\n");
+    	return 3;
+    }
 
-//	return 0;
-//}
+    struct hostent *host =  gethostbyname(ip_as_string); // Get the host from the IP.
+    if (NULL == host) {
+        // Check if the host was obtained.
+        perror("Error");
+        return -1;
+    }
+    char * ip_as_addr = inet_ntoa (*(struct in_addr*)host->h_addr); // Get the IP as an address.
+
+    char *port_as_string = getenv("PORT_TUPLAS"); // Get the port from the environment variable.
+    if (NULL == port_as_string) {
+        // Check if the port was obtained.
+        perror("Error: No está establecida la variable de entorno puerto.");
+        return -1;
+    }
+
+    int port_as_int = atoi(port_as_string); // Get the port as an integer.
+
+    struct sockaddr_in server_address = { // Create the server address.
+            .sin_family = AF_INET, 
+            .sin_addr.s_addr = inet_addr(ip_as_addr),  
+            .sin_port = htons(port_as_int)  
+    };
+
+    // Create socket.
+    int socket_fd = socket(AF_INET, SOCK_STREAM, 0); 
+    if (socket_fd < 0) {
+        // Check if the socket was created.
+        perror("error creating socket");
+        return 1;
+    }
+
+    // Connect to server.
+    int connect_result = connect(socket_fd, (const struct sockaddr *) &server_address, sizeof(server_address)); 
+    // Check if the connection was successful.
+    if (connect_result < 0) {
+        perror("error connecting to server");
+    }
+
+    // Send the request to the server.
+    char req = 0;
+    sendMessage(socket_fd, (char *)&req, 1); 
+
+    // Response from the server.
+    if (readLine(socket_fd, buf, MAX_SIZE) < 0) { 
+        // Check if the response was successful.
+        fprintf(stderr, "Error: Problem while waiting for response from the server.\n");
+        return -1;
+    }
+
+    // Closing the connection.
+    close(socket_fd);
+
+    // Result of the operation.
+    return atoi(buf);
+
+	return 0;
+}
