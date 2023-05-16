@@ -85,12 +85,8 @@ void deal_with_message(void *conn){
 	char username[MAX_SIZE];   
 	char birthdate[MAX_SIZE];   //Format DD/MM/AAAA.
     char port[MAX_SIZE];
-    //schar mssgId[MAX_SIZE];
     char mssg[MAX_SIZE];
     char receiver[MAX_SIZE];
-	//int status = 0;
-    //char ip[32];
-	//int port;
 
     // Unpack values from struct.
     int client_sd = client_conn->client_sd; 
@@ -102,9 +98,7 @@ void deal_with_message(void *conn){
         pthread_exit(NULL);
     }
 
-    printf("Operation received\n");
-    printf("%s\n", operation);
-
+    // Converting service string to its int equivalent.
     if (strcmp(operation, "REGISTER") == 0) {
         number = 0;
     } else if (strcmp(operation, "UNREGISTER") == 0) {
@@ -115,12 +109,11 @@ void deal_with_message(void *conn){
         number = 3;
     } else if (strcmp(operation, "SEND") == 0) {
         number = 4;
-    } else if (strcmp(operation, "SEND_MESSAGE") == 0) {
-        number = 5;
     } else if (strcmp(operation, "CONNECTEDUSERS") == 0) {
-        number = 6;
+        number = 5;
     } 
 
+    // Services.
     switch(number){
         // REGISTER CLIENT.
 	    case 0: 
@@ -266,6 +259,7 @@ void deal_with_message(void *conn){
                 close(client_sd); 
                 pthread_exit(NULL);
             }
+            printf("Sender: %s\n", username);
 
             // Get username that will receive the message.
             res = readLine(client_sd, receiver, MAX_SIZE); 
@@ -294,39 +288,11 @@ void deal_with_message(void *conn){
             // Call service.
             res = send_message(client_sd, username, receiver, mssg);
 
-            if(res != 0){
-                // Send response to client.
-                sprintf(buf, "%d", res); // Convert response to string.
-        
-                // Send response to client.
-                if((sendMessage(client_sd, buf, strlen(buf) + 1)) == -1){ 
-                    fprintf(stderr, "Error: (Server) response value could not be sent to the client.");
-                    close(client_sd); 
-                    pthread_exit(NULL);
-                }
-            }
-
-            // First check if the user is connected.
-            res = is_connected(receiver);
-
-            if(res == 0){
-                /* This means the user is connected. We proceed to send the message.
-                 * Now we call second service to send the message. */
-                //res = send_part2(receiver);
-            }
-
-            // This means the user is disconnected.
-
-
             pthread_mutex_unlock(&mutex_server);
             break;
 
-        // SEND MESSAGE.
-        case 5:
-            break;
-
         // CONNECTED USERS.
-        case 6:
+        case 5:
             pthread_mutex_lock(&mutex_server);
             printf("Start case 4 - CONNECTED USERS\n");
 
@@ -387,7 +353,7 @@ void deal_with_message(void *conn){
             break;
     }     
 
-    if(number != 6 && number != 4){
+    if(number != 5){
         // Send response to client.
         sprintf(buf, "%d", res); // Convert response to string.
         
@@ -475,7 +441,6 @@ int main(int argc, char *argv[]) {
     
     // Independent threads.
     pthread_attr_setdetachstate(&thread_attr, PTHREAD_CREATE_DETACHED); 
-
 
     init();
 

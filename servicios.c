@@ -31,11 +31,8 @@ int register_client(char *name, char *username, char *birthdate) {
 	int desc;
 	int status = 0;
 	char temp[100];
-	char *line = "Lista de mensajes:\n";
-	// Birthdate format DD/MM/AAAA.
-	//char ip[32];
-	//int port;
-	// lista de mensajes pendientes. (?)
+	//char *line = "Lista de mensajes:\n";
+	char *line = "Lista de mensajes:";
 
 	// Verify sizes of values.
 	if(strlen(name) > VALUE64){
@@ -69,15 +66,23 @@ int register_client(char *name, char *username, char *birthdate) {
 		// Write the information into the file.
 		write(desc, username, strlen(username));
 		write(desc, aux, strlen(aux));
+		// Name.
 		write(desc, name, strlen(name));
 		write(desc, aux, strlen(aux));
+		// Birthday.
 		write(desc, birthdate, strlen(birthdate));
 		write(desc, aux, strlen(aux));
+		// Status.
 		snprintf(temp, 100, "%d", status);
 		write(desc, temp, strlen(temp));
 		write(desc, aux, strlen(aux));
+		// Id.
+		write(desc, "0", strlen("0"));
+		write(desc, aux, strlen(aux));
+		// Space for port and IP.
 		write(desc, aux, strlen(aux));
 		write(desc, aux, strlen(aux));
+		// List of messages.
 		write(desc, line, strlen(line));
 
 		printf("Values for username %s: name =\"%s\", birthdate = %s\n", username, name, birthdate); 
@@ -111,10 +116,8 @@ int unregister_client(char *username){
 	} else {
 		printf("s> UNREGISTER <%s> FAIL\n", username);
 		printf("----------------------------------------\n");
-
 		return 1;
 	}
-	
 	printf("----------------------------------------\n");
 	return 0;
 }
@@ -164,7 +167,9 @@ int connect_client(char *username, char *ip, char *port) {
 			// Change status to connected.
 			fseek(desc, linePosition, SEEK_SET);
 			fwrite("1\n", sizeof(char), strlen("1\n"), desc);
-			//lineFound = 1;
+			
+			// Skip over the ID.
+			fgets(line, MAX_SIZE, desc);
 
 			// Add IP.
 			fwrite(ip, sizeof(char), strlen(ip), desc);
@@ -277,11 +282,12 @@ int disconnect_client(char *username) {
             fseek(desc, linePosition, SEEK_SET);
             fwrite("0\n", sizeof(char), strlen("0\n"), desc);
 
+			// Skip over ID.
+			fgets(line, MAX_SIZE, desc);
+
             // Clear IP and port.
             linePosition = ftell(desc);
             fseek(desc, linePosition, SEEK_SET);
-
-
 			fwrite("              \n", sizeof(char), strlen("              \n"), desc);
 			fwrite("\n", sizeof(char), strlen("\n"), desc);
 
@@ -487,9 +493,16 @@ En caso de fallo se mostrara ́:
 // Send message between users.
 int send_message(int client_sd, char *username, char *receiver, char *mssg){
 	const char* path1 = get_path(username); // Sender.
-	const char* path2 = get_path(username);	// Receiver.
+	const char* path2 = get_path(receiver);	// Receiver.
 	char line[MAX_SIZE];
-	char *sentence = "Lista de mensajes:\n";
+	char status[MAX_SIZE];
+	char id[MAX_SIZE];
+	int intID;
+	char strIP[MAX_SIZE];
+	char strPort[MAX_SIZE];
+	long position;
+	char strMssg[400]; // 400 = ID + Sender + Message.
+	char buf[MAX_SIZE];
 
 	// First verify if sender exists.
 	if (access(path1, F_OK) == 0) { // F_OK - test for the existence of the file
@@ -498,21 +511,127 @@ int send_message(int client_sd, char *username, char *receiver, char *mssg){
 			/* Both users exist. We store the message on the queue of the receiver.
 			 * Message contains: ID Sender Message.	First we need to retrieve the
 			 * ID to know which ID to assign to the new message*/ 
-			FILE *file = fopen(path2, "r");
+			FILE *file = fopen(path2, "r+");
 			if (file == NULL) {
                 printf("s> SEND FAIL\n");
                 printf("----------------------------------------\n");
                 return 3;
             }
-			// Look for line "Lista de mensajes:"
+			// To retrieve the last message id.
 			while (fgets(line, MAX_SIZE, file) != NULL) {
-				// Check if the line is 1 (connected).
-				if(strcmp(line, sentence) == 0){
-					fgets(line, MAX_SIZE, file);
-					printf("%s", line);
+				position += strlen(line);
+				printf("%ld\n", position);
+				// We check if the user is connected or disconnected.
+				if(strcmp(line, "0\n") == 0 || strcmp(line, "1\n") == 0){
+					// We store the status.
+					strcpy(status, line);
+					//printf("Status:\n");
+					//printf("%s", status);
+					break;
 				}
-			}
+			} 
+			// We store the message id.
+			fgets(line, MAX_SIZE, file);
+			position += strlen(line);
+			printf("%ld\n", position);
+			strcpy(id, line);
 
+			// Convert string id to int id.
+			sscanf(id, "%d", &intID);
+			//printf("Old ID: %d\n", intID);
+
+			// Increment the id and store it.
+			intID++;
+			sprintf(id, "%d", intID);
+			position--;
+			position--;
+			//position--;
+			fseek(file, position, SEEK_SET);
+			fwrite(id, sizeof(char), strlen(id), file);
+			//printf("New ID: %s", id);
+			//printf("\n");
+
+			// We store IP and Port.
+			fgets(line, MAX_SIZE, file);
+			strcpy(strIP, line);
+			fgets(line, MAX_SIZE, file);
+			strcpy(strPort, line);
+
+			//printf("IP: %s", strIP);
+			//printf("Port: %s", strPort);
+
+			// Close the file.
+			if (fclose(file) != 0) {
+                printf("s> SEND FAIL\n");
+                printf("----------------------------------------\n");
+                return 3;
+            }
+
+			// Now we proceed to write the message on the sender queue: ID Sender Message.
+			FILE *file2 = fopen(path2, "a");
+			if (file == NULL) {
+                printf("s> SEND FAIL\n");
+                printf("----------------------------------------\n");
+                return 3;
+            }
+
+			// We give format to the string.
+			strcpy(strMssg, id);
+			strcat(strMssg, " ");		
+			strcat(strMssg, username);
+			strcat(strMssg, " ");
+			strcat(strMssg, mssg);
+			strcat(strMssg, "\n");
+
+			// We write the message into the file.
+			fputs(strMssg, file2);
+			
+			// Close the file.
+			if (fclose(file2) != 0) {
+                printf("s> SEND FAIL\n");
+                printf("----------------------------------------\n");
+                return 3;
+            }
+
+			// Send client message to signal operation was successful.
+			int res = 0;
+        	sprintf(buf, "%d", res); // Convert response to string.
+        
+        	// Send response to client.
+        	if((sendMessage(client_sd, buf, strlen(buf) + 1)) == -1){ 
+            	printf("s> SEND FAIL\n");
+                printf("----------------------------------------\n");
+				return 3;
+        	}
+
+			// Send ID of message to client.
+			if((sendMessage(client_sd, id, strlen(id) + 1)) == -1){ 
+            	printf("s> SEND FAIL\n");
+                printf("----------------------------------------\n");
+				return 3;
+        	}
+
+			// We know receiver exists, we need to check if it is connected.
+			if(strcmp(status, "1\n") == 0){
+				// Send message to ip and port.
+				//int r = send_aux(client_sd, username, receiver, mssg, id);
+				int r = 0;
+				if(r == 3){
+					printf("s> SEND FAIL\n");
+    				printf("----------------------------------------\n");
+    				return 3;
+				}
+
+				// Send message to user that operation was successful.
+				printf("s> SEND MESSAGE <id> OK\n");
+        		printf("----------------------------------------\n");
+				return 0;
+			} 
+
+			// We know receiver exists but isn't connected.
+			printf("s> MESSAGE <%s> FROM <%s> TO <%s> STORED\n", id, username, receiver);
+        	printf("----------------------------------------\n");
+			return 0;
 		}
 	} else {
 		printf("s> SEND FAIL / USER DOES NOT EXIST\n");
@@ -524,119 +643,8 @@ int send_message(int client_sd, char *username, char *receiver, char *mssg){
     return 3;
 }
 
-/*int send_message(int client_sd, char *username, char *receiver, char *mssg){
-	const char* path1 = get_path(username); // Sender.
-	const char* path2 = get_path(username);	// Receiver.
-	char line[400]; // 400 = ID + Sender + Message.
-	char buf[MAX_SIZE];
+// Auxiliary function to send the message to the user.
+//int send_aux(client_sd, username, receiver, mssg, id){
 
-	// First verify if sender exists.
-	if (access(path1, F_OK) == 0) { // F_OK - test for the existence of the file
-		// If sender exists, we check if receiver exists.
-		if (access(path2, F_OK) == 0) { 
-			// Both users exist. We store the message on the queue of the receiver.
-			 // Message contains: ID Sender Message.	First we need to retrieve the
-			 //ID to know which ID to assign to the new message 
-			FILE *file = fopen(path2, "r");
-			if (file == NULL) {
-                printf("s> SEND FAIL\n");
-                printf("----------------------------------------\n");
-                return 3;
-            }
-
-			// Move the file pointer to the last character
-			fseek(file, -1, SEEK_END); 
-
-			// We retrieve the first char from the last line.
-    		char ch = fgetc(file);
-    		while (ch != ' ' && ch != EOF) {
-        		fseek(file, -2, SEEK_CUR); 
-        		ch = fgetc(file);
-   			}
-
-			char firstElement[10];
-    		fgets(firstElement, sizeof(firstElement), file);
-
-			if()
-			
-			// Convert the first element to an integer.
-    		int firstElementInt;
-    		sscanf(firstElement, "%d", &firstElementInt);
-
-			// We increment the id.
-			firstElementInt++;
-
-			// Close the file.
-			if (fclose(file) != 0) {
-                printf("s> SEND FAIL\n");
-                printf("----------------------------------------\n");
-                return 3;
-            }
-
-			// Now we proceed with writing the message.
-			FILE *file2 = fopen(path2, "a");
-            if (file2 == NULL) {
-                printf("s> SEND FAIL\n");
-                printf("----------------------------------------\n");
-                return 3;
-            }
-
-			// Turn int id into a string.
-			char str[MAX_SIZE];
-			sprintf(str, "%d", firstElementInt);
-
-			// Give format to the message that will be written.
-			strcpy(line, str);
-			strcat(line, " ");		
-			strcat(line, username);
-			strcat(line, " ");
-			strcat(line, mssg);
-
-			// Once the file is opened, we store the message at the end.
-			fprintf(file2, "%s\n", line); 
-
-			// Close the file.
-            if (fclose(file2) != 0) {
-                printf("s> SEND FAIL\n");
-                printf("----------------------------------------\n");
-                return 3;
-            }
-
-			// Send results to client and print result message.
-			int res = 0;
-        	sprintf(buf, "%d", res); // Convert response to string.
-        
-        	// Send response to client.
-        	if((sendMessage(client_sd, buf, strlen(buf) + 1)) == -1){ 
-            	printf("s> SEND FAIL\n");
-                printf("----------------------------------------\n");
-				return 3;
-        	}
-
-			// Send ID of message to client. 
-			if((sendMessage(client_sd, firstElement, strlen(firstElement) + 1)) == -1){ 
-            	printf("s> SEND FAIL\n");
-                printf("----------------------------------------\n");
-				return 3;
-        	}
-
-			printf("SEND OK - MESSAGE <%d>\n", firstElementInt);
-        	printf("----------------------------------------\n");
-			return 0;
-			 
-		} else {
-			printf("s> SEND FAIL / USER DOES NOT EXIST\n");
-        	printf("----------------------------------------\n");
-			return 1;
-		}
-	} else {
-		printf("s> SEND FAIL / USER DOES NOT EXIST\n");
-        printf("----------------------------------------\n");
-		return 1;
-	}
-	printf("s> SEND FAIL\n");
-    printf("----------------------------------------\n");
-    return 3;
-}*/
-
-// Deals with the second part of the send message functionality.
+//	return 0;
+//}
