@@ -167,23 +167,19 @@ class client:
                 operation = conn.recv(13)
                 # from which user
                 user = conn.recv(ALIAS_MAX_LENGTH)
+                print(operation.decode())
                 # get message id
-                mess_id = ''
-                while True:
-                    byte = conn.recv(1)
-                    if byte == b'\0':
-                        break
-                    mess_id += byte.decode()
+                mess_id = conn.recv(2)
                 # receive message
                 message = conn.recv(BUF_SIZE)
 
-                # receivce ACK
-                ack = conn.recv(len("SEND MESS ACK") + 1)
-
-                if ack.decode() == "SEND MESS ACK":
+                # send ACK
+                # conn.send(bytes("SEND_MESS_ACK" + '\0'))
+                print(operation.decode())
+                
+                if operation.decode() == "SEND_MESSAGE":
                     print(f'Thread id: {threading.get_native_id()}, received message: {operation} from {user}')
                     window['_SERVER_'].print(f's> MESSAGE {mess_id.decode()} FROM {user.decode()}\n     {message.decode()}\n     END')
-                break
                     
         except socket.error:
             print("Socket has been shutted down - user disconnected")

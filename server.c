@@ -276,6 +276,7 @@ void deal_with_message(void *conn){
                 close(client_sd); 
                 pthread_exit(NULL);
             }
+            printf("receiver: %s\n", receiver);
 
             // Get message.
             res = readLine(client_sd, mssg, MAX_SIZE); 
@@ -289,6 +290,8 @@ void deal_with_message(void *conn){
                 pthread_exit(NULL);
             }
 
+            printf("message: %s\n", mssg);
+
             // Call service.
             res = send_message(client_sd, username, receiver, mssg);
 
@@ -298,7 +301,7 @@ void deal_with_message(void *conn){
         // CONNECTED USERS.
         case 5:
             pthread_mutex_lock(&mutex_server);
-            printf("Start case 4 - CONNECTED USERS\n");
+            printf("Start case 5 - CONNECTED USERS\n");
 
             // Get username.
             res = readLine(client_sd, username, MAX_SIZE); 

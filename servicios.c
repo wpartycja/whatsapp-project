@@ -426,7 +426,7 @@ int send_message(int client_sd, char *username, char *receiver, char *mssg){
 	char status[MAX_SIZE];
 	char id[MAX_SIZE];
 	int intID;
-	char strIP[MAX_SIZE];
+	char strIP[MAX_SIZE] = "127.0.0.1";
 	char strPort[MAX_SIZE];
 	long position;
 	char strMssg[400]; // 400 = ID + Sender + Message.
@@ -441,7 +441,7 @@ int send_message(int client_sd, char *username, char *receiver, char *mssg){
 			 * ID to know which ID to assign to the new message*/ 
 			FILE *file = fopen(path2, "r+");
 			if (file == NULL) {
-                printf("s> SEND FAIL\n");
+                printf("s> SEND FAIL - didn't opened file\n");
                 printf("----------------------------------------\n");
                 return 3;
             }
@@ -473,24 +473,23 @@ int send_message(int client_sd, char *username, char *receiver, char *mssg){
 			sprintf(id, "%d", intID);
 			position--;
 			position--;
-			//position--;
+			// position--;
 			fseek(file, position, SEEK_SET);
 			fwrite(id, sizeof(char), strlen(id), file);
-			//printf("New ID: %s", id);
-			//printf("\n");
+			printf("New ID: %s", id);
+			printf("\n");
 
 			// We store IP and Port.
 			fgets(line, MAX_SIZE, file);
-			strcpy(strIP, line);
 			fgets(line, MAX_SIZE, file);
 			strcpy(strPort, line);
 
-			//printf("IP: %s", strIP);
-			//printf("Port: %s", strPort);
+			printf("IP: %s", strIP);
+			printf("Port: %s", strPort);
 
 			// Close the file.
 			if (fclose(file) != 0) {
-                printf("s> SEND FAIL\n");
+                printf("s> SEND FAIL failed to open the file\n");
                 printf("----------------------------------------\n");
                 return 3;
             }
@@ -498,7 +497,7 @@ int send_message(int client_sd, char *username, char *receiver, char *mssg){
 			// Now we proceed to write the message on the sender queue: ID Sender Message.
 			FILE *file2 = fopen(path2, "a");
 			if (file == NULL) {
-                printf("s> SEND FAIL\n");
+                printf("s> SEND FAIL - faile to open the file\n");
                 printf("----------------------------------------\n");
                 return 3;
             }
@@ -516,7 +515,7 @@ int send_message(int client_sd, char *username, char *receiver, char *mssg){
 			
 			// Close the file.
 			if (fclose(file2) != 0) {
-                printf("s> SEND FAIL\n");
+                printf("s> SEND FAIL - failed to close the file\n");
                 printf("----------------------------------------\n");
                 return 3;
             }
@@ -526,15 +525,15 @@ int send_message(int client_sd, char *username, char *receiver, char *mssg){
         	sprintf(buf, "%d", res); // Convert response to string.
         
         	// Send response to client.
-        	if((sendMessage(client_sd, buf, strlen(buf) + 1)) == -1){ 
-            	printf("s> SEND FAIL\n");
+        	if((sendMessage(client_sd, buf, strlen(buf))) == -1){ 
+            	printf("s> SEND FAIL - failed to send response to client\n");
                 printf("----------------------------------------\n");
 				return 3;
         	}
 
 			// Send ID of message to client.
-			if((sendMessage(client_sd, id, strlen(id) + 1)) == -1){ 
-            	printf("s> SEND FAIL\n");
+			if((sendMessage(client_sd, id, strlen(id))) == -1){ 
+            	printf("s> SEND FAIL - failed to send ID of message to client\n");
                 printf("----------------------------------------\n");
 				return 3;
         	}
@@ -544,7 +543,7 @@ int send_message(int client_sd, char *username, char *receiver, char *mssg){
 				// Send message to ip and port.
 				int r = send_aux(client_sd, username, receiver, mssg, id, strIP, strPort);
 				if(r == 3){
-					printf("s> SEND FAIL\n");
+					printf("s> SEND FAIL - fail in send_aux function\n");
     				printf("----------------------------------------\n");
     				return 3;
 				}
@@ -553,7 +552,7 @@ int send_message(int client_sd, char *username, char *receiver, char *mssg){
 				// Open the file in read mode
     			FILE *file3 = fopen(path2, "r");
     			if (file == NULL) {
-        			printf("s> SEND FAIL\n");
+        			printf("s> SEND FAIL - failed to open a file\n");
     				printf("----------------------------------------\n");
     				return 3;
     			}
@@ -562,7 +561,7 @@ int send_message(int client_sd, char *username, char *receiver, char *mssg){
 				const char* path3 = get_path("temp");
     			FILE *temp = fopen(path3, "w");
     			if (temp == NULL) {
-        			printf("s> SEND FAIL\n");
+        			printf("s> SEND FAIL - didn't open temporary file\n");
     				printf("----------------------------------------\n");
     				return 3;
     			}
@@ -580,27 +579,27 @@ int send_message(int client_sd, char *username, char *receiver, char *mssg){
 
 				// Close the original file and temporary file.
 				if(fclose(file3) != 0){
-					printf("s> SEND FAIL\n");
+					printf("s> SEND FAIL - didn't close original file\n");
     				printf("----------------------------------------\n");
     				return 3;
 				}
 
 				if(fclose(temp) != 0){
-					printf("s> SEND FAIL\n");
+					printf("s> SEND FAIL - didn't close temporary file\n");
     				printf("----------------------------------------\n");
     				return 3;
 				}
 
 				// Remove the original file
     			if (remove(path2) != 0) {
-        			printf("s> SEND FAIL\n");
+        			printf("s> SEND FAIL - didn't removed original file\n");
     				printf("----------------------------------------\n");
     				return 3;
     			}
 
 				// Rename the temporary file to the original file name
     			if (rename(path3, path2) != 0) {
-        			printf("s> SEND FAIL\n");
+        			printf("s> SEND FAIL - didnt rename temporary file\n");
     				printf("----------------------------------------\n");
     				return 3;
     			}
@@ -621,7 +620,7 @@ int send_message(int client_sd, char *username, char *receiver, char *mssg){
         printf("----------------------------------------\n");
 		return 1;
 	}
-	printf("s> SEND FAIL\n");
+	printf("s> SEND FAIL - sender doenst exist\n");
     printf("----------------------------------------\n");
     return 3;
 }
@@ -629,19 +628,22 @@ int send_message(int client_sd, char *username, char *receiver, char *mssg){
 // Auxiliary function to send the message to the user.
 int send_aux(int client_sd, char *username, char *receiver, char *mssg, char *id, char *ip, char *port){
 	// Get the IP from the environment variable.
-	char *ip_as_string = ip; 
-    if (NULL == ip_as_string) {
-        // Check if the IP was obtained.
-        printf("s> SEND FAIL\n");
-    	printf("----------------------------------------\n");
-    	return 3;
-    }
+	// char *ip_as_string = ip; 
+    // if (NULL == ip_as_string) {
+    //     // Check if the IP was obtained.
+    //     printf("s> SEND FAIL - didn't read ip\n");
+    // 	printf("----------------------------------------\n");
+    // 	return 3;
+    // }
+	// printf("")
+	// printf("ip: %s", ip_as_string);
 
+	printf("ip: %s", ip);
 	// Get the host from the IP.
-    struct hostent *host =  gethostbyname(ip_as_string); 
+    struct hostent *host =  gethostbyname(ip); 
     if (NULL == host) {
         // Check if the host was obtained.
-        printf("s> SEND FAIL\n");
+        printf("s> SEND FAIL - didn't get host\n");
     	printf("----------------------------------------\n");
     	return 3;
     }
@@ -653,7 +655,7 @@ int send_aux(int client_sd, char *username, char *receiver, char *mssg, char *id
     char *port_as_string = port; 
     if (NULL == port_as_string) {
         // Check if the port was obtained.
-       	printf("s> SEND FAIL\n");
+       	printf("s> SEND FAIL - port wasn't obtained\n");
     	printf("----------------------------------------\n");
     	return 3;
     }
@@ -672,7 +674,7 @@ int send_aux(int client_sd, char *username, char *receiver, char *mssg, char *id
     int socket_fd = socket(AF_INET, SOCK_STREAM, 0); 
     if (socket_fd < 0) {
         // Check if the socket was created.
-        printf("s> SEND FAIL\n");
+        printf("s> SEND FAIL - fail in socket creation\n");
     	printf("----------------------------------------\n");
     	return 3;
     }
@@ -681,7 +683,7 @@ int send_aux(int client_sd, char *username, char *receiver, char *mssg, char *id
     int connect_result = connect(socket_fd, (const struct sockaddr *) &server_address, sizeof(server_address)); 
     // Check if the connection was successful.
     if (connect_result < 0) {
-        printf("s> SEND FAIL\n");
+        printf("s> SEND FAIL - failed to connect to server\n");
     	printf("----------------------------------------\n");
     	return 3;
     }
@@ -689,14 +691,6 @@ int send_aux(int client_sd, char *username, char *receiver, char *mssg, char *id
 	// Send the request to the server.
 	char *operation = "SEND_MESSAGE";
     sendMessage(socket_fd, operation, strlen(operation) + 1); 
-
-	char response[MAX_SIZE];
-	// We wait for the acknowledgement message.
-	if(recvMessage(client_sd, (char *) &response, MAX_SIZE) == -1){ 
-        printf("s> SEND FAIL\n");
-    	printf("----------------------------------------\n");
-    	return 3;
-    }
 
 	// Send username of sender.
 	sendMessage(socket_fd, username, strlen(username) + 1); 
@@ -706,6 +700,14 @@ int send_aux(int client_sd, char *username, char *receiver, char *mssg, char *id
 
 	// Send message.
 	sendMessage(socket_fd, mssg, strlen(mssg) + 1); 
+
+	// char response[MAX_SIZE];
+	// // We wait for the acknowledgement message.
+	// if(recvMessage(client_sd, (char *) &response, MAX_SIZE) == -1){ 
+    //     printf("s> SEND FAIL - didn't get the acknowledgement of response\n");
+    // 	printf("----------------------------------------\n");
+    // 	return 3;
+    // }
 
 	// Display message.
 	printf("s> SEND MESSAGE <%s> FROM <%s> TO <%s>\n", id, username, receiver);
