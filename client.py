@@ -15,18 +15,6 @@ ALIAS_MAX_LENGTH = 32
 TIMEOUT = 5
 BUF_SIZE = 256
 
-#  @TODO: broken pipe error handling?
-
-#  @TODO handle '\0' sign?????
-#  @TODO mutex for printing?
-
-#  @TODO test connection for multiple clients
-
-#  @TODO  size of message - block or send it multiple times to server if message is long?
-
-# @TODO demon???
-
-
 class client:
 
     # ******************** TYPES *********************
