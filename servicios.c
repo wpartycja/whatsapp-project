@@ -396,7 +396,6 @@ int connected_users(int client_sd) {
                         return 3;
                     }
 					
-					break;
                 }
             }
 
