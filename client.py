@@ -284,7 +284,6 @@ class client:
         # print response on the frontend
         match response:
             case 0:
-                client._socket.shutdown(socket.SHUT_RD)
                 client._socket.close()
                 client._disconnect.set()
                 client._connection_thread.join()
@@ -400,17 +399,34 @@ class client:
                 n_users += byte.decode()
             n_users = int(n_users)
             operation = int(s.recv(2).decode()[0])
-            print(f'operation: {operation}')
-            for _ in range(n_users):
-                # listening to every byte with every letter/sign
-                data = s.recv(ALIAS_MAX_LENGTH)
-                if len(data) == 0:
-                    print("Didn't recevied delacerd number of users form server")
-                    break
-                print(f'data received: {data}')
-                decoded_data = data.decode("ISO-8859-1")
-                print(decoded_data)
-                users.append(decoded_data)
+            if operation == 0:
+                print(f'operation: {operation}')
+                for _ in range(n_users):
+                    user = ' '
+                    while True:
+                        byte = s.recv(1)
+                        if byte == b'\0':
+                            break
+                        user += byte.decode()
+                    if len(user) == 0:
+                        print("Didn't recevied delacerd number of users form server")
+                        break
+                    print(f'data received: {user}')
+                    users.append(user)
+
+
+                # old version 
+            #                 print(f'operation: {operation}')
+            # for _ in range(n_users):
+            #     # listening to every byte with every letter/sign
+            #     data = s.recv(ALIAS_MAX_LENGTH)
+            #     if len(data) == 0:
+            #         print("Didn't recevied delacerd number of users form server")
+            #         break
+            #     print(f'data received: {data}')
+            #     decoded_data = data.decode("ISO-8859-1")
+            #     print(decoded_data)
+            #     users.append(decoded_data)
         except socket.timeout:
             # Handle a timeout exception
             sg.Popup(f'Timeout occured, no data received within {TIMEOUT} sec', title='TIMEOUT', button_type=5, auto_close=True, auto_close_duration=3)
