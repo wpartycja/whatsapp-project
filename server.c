@@ -213,6 +213,10 @@ void deal_with_message(void *conn){
 
             if(res == 0){
                 connectedUsers++;
+
+                // We need to check if there are any pending messages to be sent.
+                printf("Now check messages.\n");
+                check_messages(username, ip, port);
             }
 
 		    pthread_mutex_unlock(&mutex_server);

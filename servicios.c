@@ -145,12 +145,12 @@ referencia a los alias de los usuarios.*/
 
 
 // Client connection.
+// Client connection.
 int connect_client(char *username, char *ip, char *port) {
     const char* path = get_path(username);
 	char line[MAX_SIZE];
 	long int linePosition = -1;
 	char *lista = "Lista de mensajes:\n";
-	//int lineFound = 0;
 	FILE *desc;
     
     // Open the file and check if the user exists.
@@ -193,64 +193,15 @@ int connect_client(char *username, char *ip, char *port) {
 			return 0;
 		}
 
-		fclose(desc);
-
 		// Check if the line is 0 (disconnected).
 		if(strcmp(line, "1\n") == 0){
+			//lineFound = 1;
 			printf("s> CONNECT <%s> OK\n", username);
 			return 2;
 		}
 	}
 	return 3;
 }
-
-// REMEMBER TO CLOSE FILE !!!!!!!!
-    /*
-    if (status == 0) {
-        
-        // Send pending messages.
-        char send_message[100];
-        lseek(desc, -1, SEEK_SET);
-        while (lseek(desc, -1, SEEK_CUR) != 0 && read(desc, temp, 1) == 1) {
-            if (temp[0] == '\n') {
-                break;
-            }
-        }
-        
-        if (temp[0] == '1') {
-            printf("s> CONNECT <%s> OK\n", username);
-            
-            // Iterate over pending messages and send them.
-            int message_id = 1;
-            while (read(desc, send_message, sizeof(send_message)) > 0) {
-                printf("s> SEND MESSAGE %d FROM <%s> TO <%s>\n", message_id, get_sender(send_message), username);
-                message_id++;
-            }
-        } else {
-            printf("s> CONNECT <%s> FAIL\n", username);
-            printf("----------------------------------------\n");
-            return 3; // Invalid status value.
-        }
-    } else if (status == 1) {
-        printf("s> CONNECT <%s> FAIL\n", username);
-        printf("----------------------------------------\n");
-        return 2; // User is already connected.
-    } else {
-        printf("s> CONNECT <%s> FAIL\n", username);
-        printf("----------------------------------------\n");
-        return 3; // Invalid status value.
-    }
-    
-    // Close the file.
-    if (close(desc) == -1) {
-        perror("Error while closing the file.\n");
-        printf("----------------------------------------\n");
-        return 3;
-    }
-    
-    printf("----------------------------------------\n");
-    return 0; // Successful connection.
-	*/
 
 // Disconnect a client.
 int disconnect_client(char *username) {
@@ -382,7 +333,6 @@ int connected_users(int client_sd) {
     char user[MAX_SIZE];
 	char newUser[MAX_SIZE];
     int send;
-    //char buf[MAX_SIZE];
 
     // Open the directory.
     dir = opendir(DIR_NAME);
@@ -759,5 +709,36 @@ int send_aux(int client_sd, char *username, char *receiver, char *mssg, char *id
     // Closing the connection.
     close(socket_fd);
 
+	return 0;
+}
+
+int check_messages(char *username, char *ip, char *port){
+	FILE *file;
+	const char* path = get_path(username); // Receiver.
+	char line[MAX_SIZE];
+	char strID[MAX_SIZE];
+    
+    // Open the file and check if the user exists.
+    file = fopen(path, "r+");
+    if (file == NULL) {
+		// In case the user doesn't exist.
+		printf("user doesn't exist.\n");
+        printf("s> CONNECT <%s> FAIL\n", username);
+        printf("----------------------------------------\n");
+        return 1; 
+    }
+
+	// To get the necessary information.
+	while (fgets(line, MAX_SIZE, file) != NULL) {
+		// We need to get the last message id.
+		if(strcmp(line, "1\n") == 0){
+			// We read and store the next line that has the id.
+			fgets(line, MAX_SIZE, file);
+			strcpy(strID, line);
+		}
+
+		// We check if we reached the list.
+		//Sif()
+	}
 	return 0;
 }
