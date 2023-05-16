@@ -718,11 +718,14 @@ int send_aux(int client_sd, char *username, char *receiver, char *mssg, char *id
 	return 0;
 }
 
-int check_messages(char *username, char *ip, char *port){
+// Auxiliary function of connect to send pending messages.
+int check_messages(int client_sd, char *username, char *ip, char *port){
 	FILE *file;
 	const char* path = get_path(username); // Receiver.
 	char line[MAX_SIZE];
 	char strID[MAX_SIZE];
+	char *sender;
+	char *msg;
     
     // Open the file and check if the user exists.
     file = fopen(path, "r+");
@@ -744,7 +747,22 @@ int check_messages(char *username, char *ip, char *port){
 		}
 
 		// We check if we reached the list.
-		//Sif()
+		if(strcmp(line, "Lista de mensajes:\n") == 0){
+			// We get the next line that will always be \n.
+			fgets(line, MAX_SIZE, file);
+			// If the next line is NULL then there are no pending messages.
+			while (fgets(line, MAX_SIZE, file) != NULL){
+				// Get the necessary elements from the string.
+				strtok (line," ");
+				sender = strtok (line," ");
+				msg = strtok (line," ");
+
+				// Send the message.
+				send_message(client_sd, sender, username, msg);
+			}
+		}
+		break;
 	}
+	printf("No pending messages.\n");
 	return 0;
 }
